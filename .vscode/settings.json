@@ -1,0 +1,13 @@
+{
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "terminal.integrated.env.*": {
+        "PYTHONPATH": "${workspaceFolder}"
+    },
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}",
+        "/Users/jklinger/Nesta/nesta"
+    ],
+    "python.pythonPath": "/Users/jklinger/anaconda3/envs/py37/bin/python"
+}
