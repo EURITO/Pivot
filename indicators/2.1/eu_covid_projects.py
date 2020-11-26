@@ -183,7 +183,7 @@ def assign_probability(premise, hypothesis_label):
     return true_prob
 
 
-def evaluate_probability(text, hypothesis_label, percentile=90):
+def evaluate_probability(text, hypothesis_label, percentile=50):
     """[summary]
 
         Returns:
