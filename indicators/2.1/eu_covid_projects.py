@@ -183,20 +183,22 @@ def assign_probability(premise, hypothesis_label):
     return true_prob
 
 
-def evaluate_probability(text, hypothesis_label, percentile=50):
+def evaluate_probability(text, hypothesis_label):  # , percentile=50):
     """[summary]
 
         Returns:
             [type]: [description]
     """
-    probs = [assign_probability(str(sent), hypothesis_label)
-             for sent in nlp(text).sents]
-    return np.percentile(probs, q=percentile)
+    # probs = [assign_probability(str(sent), hypothesis_label)
+    #         for sent in nlp(text).sents]
+    premise = [str(sent) for sent in nlp(text).sents]
+    return assign_probability(premise, hypothesis_label)
+    # return np.percentile(probs, q=percentile)
 
 # %%
 
 
-@lru_cache()
+@ lru_cache()
 def get_cordis_projects():
     """[summary]
 
