@@ -1,4 +1,3 @@
-
 # %%
 '''
 EU Covid Projects
@@ -192,8 +191,6 @@ def evaluate_probability(text, hypothesis_label):  # , percentile=50):
     # probs = [assign_probability(str(sent), hypothesis_label)
     #         for sent in nlp(text).sents]
     premise = [str(sent) for sent in nlp(text).sents]
-    if len(premise) == 0:
-        return 0
     return assign_probability(premise, hypothesis_label)
     # return np.percentile(probs, q=percentile)
 
