@@ -15,10 +15,9 @@ import numpy as np
 import requests_cache
 from requests.adapters import HTTPAdapter, Retry
 from transformers import AutoTokenizer
-from transformers.modeling_auto import AutoModelForQuestionAnswering
 from transformers.modeling_bart import BartForSequenceClassification
-import spacy
 
+from indicators.core.nlp_utils import nlp
 from nesta.core.orms.orm_utils import db_session, get_mysql_engine
 from nesta.core.orms.cordis_orm import Project
 
@@ -138,31 +137,6 @@ def load_bart(model_name="facebook/bart-large-mnli"):
     #     tokenizer = AutoTokenizer.from_pretrained(model_name)
     #     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
     # return tokenizer, model
-
-
-# %%
-
-
-@lru_cache()
-def _nlp():
-    """[summary]
-
-    Returns:
-        [type]: [description]
-    """
-    return spacy.load("en_core_web_sm")
-
-
-def nlp(text):
-    """[summary]
-
-    Args:
-        text ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    return _nlp()(text)
 
 # %%
 

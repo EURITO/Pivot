@@ -6,7 +6,11 @@
     },
     "python.envFile": "${workspaceFolder}/.env",
     "python.analysis.extraPaths": [
-        "${workspaceFolder}",
+        "/Users/jklinger/Nesta/Pivot",
+        "/Users/jklinger/Nesta/nesta"
+    ],
+    "python.autoComplete.extraPaths": [
+        "/Users/jklinger/Nesta/Pivot",
         "/Users/jklinger/Nesta/nesta"
     ],
     "python.pythonPath": "/Users/jklinger/anaconda3/envs/py37/bin/python"
