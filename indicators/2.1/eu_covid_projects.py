@@ -15,6 +15,7 @@ import numpy as np
 import requests_cache
 from requests.adapters import HTTPAdapter, Retry
 from transformers import AutoTokenizer
+from transformers.modeling_auto import AutoModelForQuestionAnswering
 from transformers.modeling_bart import BartForSequenceClassification
 import spacy
 
@@ -133,6 +134,12 @@ def load_bart(model_name="facebook/bart-large-mnli"):
         model = BartForSequenceClassification.from_pretrained(model_name)
     return tokenizer, model
 
+    # with requests_cache.disabled():
+    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    #     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
+    # return tokenizer, model
+
+
 # %%
 
 
@@ -157,6 +164,8 @@ def nlp(text):
     """
     return _nlp()(text)
 
+# %%
+
 
 def assign_probability(premise, hypothesis_label):
     """[summary]
@@ -172,18 +181,34 @@ def assign_probability(premise, hypothesis_label):
     hypothesis = f'This text is about {hypothesis_label}.'
 
     # run through model pre-trained on MNLI
-    input_ids = tokenizer.encode(premise, hypothesis, return_tensors='pt')
+    # input_ids = tokenizer.encode(premise, hypothesis, return_tensors='pt')
+    # logits = model(input_ids)[0]
+    to_encode = [(p, hypothesis) for p in premise]
+
+    tokens = tokenizer.batch_encode_plus(
+        to_encode,
+        add_special_tokens=True,
+        padding=True,
+        truncation=True,
+        return_token_type_ids=True,
+        return_tensors="pt")
+    input_ids = tokens['input_ids']
     logits = model(input_ids)[0]
 
     # we throw away "neutral" (dim 1) and take the probability of
     # "entailment" (2) as the probability of the label being true
     entail_contradiction_logits = logits[:, [0, 2]]
-    probs = entail_contradiction_logits.softmax(dim=1)
-    true_prob = probs[:, 1].item()
-    return true_prob
+    probs = entail_contradiction_logits.softmax(dim=-1)
+    true_probs = [p.item() for p in probs[:, 1]]
+    return true_probs
+
+    # entail_contradiction_logits = logits[:, [0, 2]]
+    # probs = entail_contradiction_logits.softmax(dim=1)
+    # true_prob = probs[:, 1].item()
+    # return true_prob
 
 
-def evaluate_probability(text, hypothesis_label):  # , percentile=50):
+def evaluate_probability(text, hypothesis_label, percentile=90):
     """[summary]
 
         Returns:
@@ -192,8 +217,8 @@ def evaluate_probability(text, hypothesis_label):  # , percentile=50):
     # probs = [assign_probability(str(sent), hypothesis_label)
     #         for sent in nlp(text).sents]
     premise = [str(sent) for sent in nlp(text).sents]
-    return assign_probability(premise, hypothesis_label)
-    # return np.percentile(probs, q=percentile)
+    probs = assign_probability(premise, hypothesis_label)
+    return np.percentile(probs, q=percentile)
 
 # %%
 
