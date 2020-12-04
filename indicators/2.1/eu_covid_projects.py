@@ -118,81 +118,81 @@ def get_crisis_rcns(page_size=100):
 # %%
 
 
-@lru_cache()
-def load_bart(model_name="facebook/bart-large-mnli"):
-    """[summary]
+# @lru_cache()
+# def load_bart(model_name="facebook/bart-large-mnli"):
+#     """[summary]
 
-    Args:
-        model_name (str, optional): [description]. Defaults to "facebook/bart-large-mnli".
+#     Args:
+#         model_name (str, optional): [description]. Defaults to "facebook/bart-large-mnli".
 
-    Returns:
-        [type]: [description]
-    """
-    with requests_cache.disabled():
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = BartForSequenceClassification.from_pretrained(model_name)
-    return tokenizer, model
+#     Returns:
+#         [type]: [description]
+#     """
+#     with requests_cache.disabled():
+#         tokenizer = AutoTokenizer.from_pretrained(model_name)
+#         model = BartForSequenceClassification.from_pretrained(model_name)
+#     return tokenizer, model
 
-    # with requests_cache.disabled():
-    #     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    #     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
-    # return tokenizer, model
+#     # with requests_cache.disabled():
+#     #     tokenizer = AutoTokenizer.from_pretrained(model_name)
+#     #     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
+#     # return tokenizer, model
 
-# %%
-
-
-def assign_probability(premise, hypothesis_label):
-    """[summary]
-
-    Args:
-        premise ([type]): [description]
-        hypothesis_label ([type]): [description]
-
-    Returns:
-        [type]: [description]
-    """
-    tokenizer, model = load_bart()
-    hypothesis = f'This text is about {hypothesis_label}.'
-
-    # run through model pre-trained on MNLI
-    # input_ids = tokenizer.encode(premise, hypothesis, return_tensors='pt')
-    # logits = model(input_ids)[0]
-    to_encode = [(p, hypothesis) for p in premise]
-
-    tokens = tokenizer.batch_encode_plus(
-        to_encode,
-        add_special_tokens=True,
-        padding=True,
-        truncation=True,
-        return_token_type_ids=True,
-        return_tensors="pt")
-    input_ids = tokens['input_ids']
-    logits = model(input_ids)[0]
-
-    # we throw away "neutral" (dim 1) and take the probability of
-    # "entailment" (2) as the probability of the label being true
-    entail_contradiction_logits = logits[:, [0, 2]]
-    probs = entail_contradiction_logits.softmax(dim=-1)
-    true_probs = [p.item() for p in probs[:, 1]]
-    return true_probs
-
-    # entail_contradiction_logits = logits[:, [0, 2]]
-    # probs = entail_contradiction_logits.softmax(dim=1)
-    # true_prob = probs[:, 1].item()
-    # return true_prob
+# # %%
 
 
-def evaluate_probability(text, hypothesis_label, percentile=90):
-    """[summary]
+# def assign_probability(premise, hypothesis_label):
+#     """[summary]
 
-        Returns:
-            [type]: [description]
-    """
-    # probs = [assign_probability(str(sent), hypothesis_label)
-    #         for sent in nlp(text).sents]
-    premise = [str(sent) for sent in nlp(text).sents]
-    probs = assign_probability(premise, hypothesis_label)
-    return np.percentile(probs, q=percentile)
+#     Args:
+#         premise ([type]): [description]
+#         hypothesis_label ([type]): [description]
+
+#     Returns:
+#         [type]: [description]
+#     """
+#     tokenizer, model = load_bart()
+#     hypothesis = f'This text is about {hypothesis_label}.'
+
+#     # run through model pre-trained on MNLI
+#     # input_ids = tokenizer.encode(premise, hypothesis, return_tensors='pt')
+#     # logits = model(input_ids)[0]
+#     to_encode = [(p, hypothesis) for p in premise]
+
+#     tokens = tokenizer.batch_encode_plus(
+#         to_encode,
+#         add_special_tokens=True,
+#         padding=True,
+#         truncation=True,
+#         return_token_type_ids=True,
+#         return_tensors="pt")
+#     input_ids = tokens['input_ids']
+#     logits = model(input_ids)[0]
+
+#     # we throw away "neutral" (dim 1) and take the probability of
+#     # "entailment" (2) as the probability of the label being true
+#     entail_contradiction_logits = logits[:, [0, 2]]
+#     probs = entail_contradiction_logits.softmax(dim=-1)
+#     true_probs = [p.item() for p in probs[:, 1]]
+#     return true_probs
+
+#     # entail_contradiction_logits = logits[:, [0, 2]]
+#     # probs = entail_contradiction_logits.softmax(dim=1)
+#     # true_prob = probs[:, 1].item()
+#     # return true_prob
+
+
+# def evaluate_probability(text, hypothesis_label, percentile=90):
+#     """[summary]
+
+#         Returns:
+#             [type]: [description]
+#     """
+#     # probs = [assign_probability(str(sent), hypothesis_label)
+#     #         for sent in nlp(text).sents]
+#     premise = [str(sent) for sent in nlp(text).sents]
+#     probs = assign_probability(premise, hypothesis_label)
+#     return np.percentile(probs, q=percentile)
 
 # %%
 
@@ -214,27 +214,27 @@ def get_cordis_projects():
 # %%
 
 
-def label_cordis_projects(test=False, test_limit=10):
-    """[summary]
+# def label_cordis_projects(test=False, test_limit=10):
+#     """[summary]
 
-    Args:
-        test (bool, optional): [description]. Defaults to False.
-        test_limit (int, optional): [description]. Defaults to 10.
+#     Args:
+#         test (bool, optional): [description]. Defaults to False.
+#         test_limit (int, optional): [description]. Defaults to 10.
 
-    Returns:
-        [type]: [description]
-    """
-    projects = get_cordis_projects()
-    for i, proj in enumerate(projects):
-        for crisis_code in CRISIS_CODES:
-            crisis_code = camel_to_snake(crisis_code)
-            label = f'covid {crisis_code}'
-            prob = evaluate_probability(proj['text'], label)
-            proj[crisis_code] = prob
-        if test and i == test_limit:
-            projects = projects[:test_limit]
-            break
-    return projects
+#     Returns:
+#         [type]: [description]
+#     """
+#     projects = get_cordis_projects()
+#     for i, proj in enumerate(projects):
+#         for crisis_code in CRISIS_CODES:
+#             crisis_code = camel_to_snake(crisis_code)
+#             label = f'covid {crisis_code}'
+#             prob = evaluate_probability(proj['text'], label)
+#             proj[crisis_code] = prob
+#         if test and i == test_limit:
+#             projects = projects[:test_limit]
+#             break
+#     return projects
 
 # %%
 
