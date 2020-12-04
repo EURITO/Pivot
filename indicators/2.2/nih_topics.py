@@ -27,10 +27,11 @@ def get_nih_projects(from_date="2010-01-01"):
     with db_session(engine) as session:
         query = session.query(NihProject.application_id, NihProject.phr,
                               NihProject.abstract_text, NihProject.project_title,
-                              NihProject.project_start)
+                              NihProject.project_start, NihProject.total_cost)
         query = query.filter(NihProject.project_start > from_date)
-        return [dict(id=id, text=join_text(phr, abstract), title=title, start_date=start_date)
-                for id, phr, abstract, title, start_date in query.all()
+        return [dict(id=id, text=join_text(phr, abstract), title=title,
+                     start_date=start_date, funding=funding)
+                for id, phr, abstract, title, start_date, funding in query.all()
                 if not ((phr is None) and (abstract is None))]
 
 
