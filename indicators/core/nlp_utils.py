@@ -83,12 +83,27 @@ def fit_topics(dataset_label, doc_vectors, feature_names, titles, n_topics,
                anchors, anchor_strength=10, max_iter=25):
     kwargs = dict(X=doc_vectors, words=feature_names, docs=titles,
                   anchors=anchors, anchor_strength=anchor_strength)
-    label = f'topic-model-{dataset_label}-{n_topics}-{max_iter}')
+    label = f'topic-model-{dataset_label}-{n_topics}-{max_iter}'
 
-    topic_model=ct.Corex(max_iter = max_iter, n_hidden = n_topics)
+    topic_model = ct.Corex(max_iter=max_iter, n_hidden=n_topics)
     topic_model.fit(**kwargs)
-    vt.vis_rep(topic_model, column_label = feature_names, prefix = label)
+    vt.vis_rep(topic_model, column_label=feature_names, prefix=label)
     with open(label + '/model.pickle', 'wb') as f:
         pickle.dump(topic_model, f)
     return topic_model
 # %%
+
+
+def parse_topic(line, n_most=5):
+    _, topic_content = line.split(":")
+    topic_content = ' '.join(topic_content.split(",")[:-n_most])
+    return topic_content
+
+
+def parse_corex_topics(path):
+    topics = []
+    with open(path) as f:
+        for line in f.readlines():
+            topic_content = parse_topic(line)
+            topics.append(topic_content)
+    return topics
