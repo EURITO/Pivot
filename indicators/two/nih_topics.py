@@ -1,20 +1,13 @@
-# TODO: Counts of NiH projects by topic by region
-# TODO: Counts of Cordis projects by topic by region
-
-
 # %%
 from functools import lru_cache
-from matplotlib.pyplot import title
-from sklearn.feature_extraction.text import CountVectorizer
 from nesta.core.orms.general_orm import NihProject
 from nesta.core.orms.orm_utils import get_mysql_engine, db_session
 
-
-from indicators.core.nlp_utils import fit_topics, vectorise_docs
+from indicators.core.nlp_utils import fit_topics, join_text, vectorise_docs
 
 
 @lru_cache()
-def get_nih_projects(from_date="2010-01-01"):
+def get_nih_projects(from_date="2015-01-01"):
     """Get all NiH projects from a given start date.
 
     Args:
@@ -35,16 +28,6 @@ def get_nih_projects(from_date="2010-01-01"):
                 if not ((phr is None) and (abstract is None))]
 
 
-def join_text(*args):
-    """Concatenate all text arguments together, ignore None values.
-
-    Args:
-        args (tuple): Any sequence of str or None values.
-    Returns:
-        joined: All text values concatenated together with a single space token.
-    """
-    return ' '.join(filter(None, args))
-
 # %%
 
 
@@ -52,7 +35,7 @@ def fit_nih_topics(n_topics=150):
     projects = get_nih_projects()
     doc_vectors, feature_names = vectorise_docs([p['text'] for p in projects])
     titles = [p['title'] for p in projects]
-    anchors = [['infection', 'covid', "coronavirus"],
+    anchors = [['infection', 'covid', "coronavirus", 'covid_19', '2019_ncov', 'sars_cov_2'],
                ["infection", "hiv"],
                ["infection", "bacteria"],
                ["infection", "parasite"]]

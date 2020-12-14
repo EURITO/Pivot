@@ -5,6 +5,7 @@ NLP utils
 
 """
 
+import os
 from corextopic import vis_topic as vt
 from corextopic import corextopic as ct
 from functools import lru_cache
@@ -15,6 +16,17 @@ import spacy
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from topsbm import TopSBM
+
+
+def join_text(*args):
+    """Concatenate all text arguments together, ignore None values.
+
+    Args:
+        args (tuple): Any sequence of str or None values.
+    Returns:
+        joined: All text values concatenated together with a single space token.
+    """
+    return ' '.join(filter(None, args))
 
 
 @lru_cache()
@@ -90,6 +102,7 @@ def fit_topics(dataset_label, doc_vectors, feature_names, titles, n_topics,
     vt.vis_rep(topic_model, column_label=feature_names, prefix=label)
     with open(label + '/model.pickle', 'wb') as f:
         pickle.dump(topic_model, f)
+    os.remove(label + '/cont_labels.txt')  # Very large file that we don't use
     return topic_model
 # %%
 
