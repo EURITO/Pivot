@@ -145,11 +145,10 @@ def fit_cordis_topics(n_topics=150):
     projects = get_cordis_projects()
     doc_vectors, feature_names = vectorise_docs([p['text'] for p in projects])
     titles = [p['title'] for p in projects]
-    anchors = [['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2'],
-               ['patients', 'clinical', 'patient', 'medical', 'healthcare'],
+    anchors = [['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2', 'infection', 'immunity'],
                ['cells', 'cell', 'cellular', 'proteins', 'in_vivo',
                 'in_vitro', 'protein', 'mouse', 'expression']]
     topic_model = fit_topics(dataset_label="cordis", doc_vectors=doc_vectors,
                              feature_names=feature_names, titles=titles,
-                             n_topics=n_topics, anchors=anchors)
+                             n_topics=n_topics, anchors=anchors, anchor_strength=50)
     return projects, topic_model

@@ -52,7 +52,7 @@ def nlp(text):
     return _nlp()(text)
 
 
-def join_and_lemmatise_doc(doc):
+def join_and_lemmatise_doc(doc, extra_stops=[]):
     """Join and conservatively lemmatise a term-wise document
 
     Args:
@@ -63,11 +63,12 @@ def join_and_lemmatise_doc(doc):
     """
     # _doc = [' '.join(term.lemma_ for term in nlp(' '.join(sent)))
     #        for sent in doc]
-    _doc = [' '.join(sent) for sent in doc]
+    _doc = [' '.join(term for term in sent if term not in extra_stops)
+            for sent in doc]
     return '\n'.join(_doc)
 
 
-def vectorise_docs(docs, min_df=10, max_df=0.95):
+def vectorise_docs(docs, min_df=10, max_df=0.95, extra_stops=[]):
     """Impute n-grams from wiktionary and then process using a standard
     count vectoriser.
 
@@ -82,7 +83,7 @@ def vectorise_docs(docs, min_df=10, max_df=0.95):
                         database="production")
     docs = [ngrammer.process_document(doc) for doc in docs]
     # Join and conservatively lemmatise
-    docs = [join_and_lemmatise_doc(doc) for doc in docs]
+    docs = [join_and_lemmatise_doc(doc, extra_stops) for doc in docs]
     # Vectorise the docs
     vec = CountVectorizer(min_df=min_df, max_df=max_df)
     doc_vectors = vec.fit_transform(docs)
