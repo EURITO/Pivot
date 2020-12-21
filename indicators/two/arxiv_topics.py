@@ -80,10 +80,10 @@ def get_arxiv_articles(from_date="2015-01-01", geo_split=False):
         #nuts_info_lookup = get_nuts_info_lookup()
         nuts_reverse = get_arxiv_geo_lookup()
         for geo_code, ids in nuts_reverse.items():
-            _articles = filter(lambda article: article['id'] in ids, articles)
-            yield _articles, geo_code  # , nuts_info_lookup
+            indexes = list(article['id'] in ids for article in articles)
+            yield indexes, geo_code  # , nuts_info_lookup
     else:
-        yield articles, None  # , None
+        return articles
 
 
 def fit_arxiv_topics(n_topics=150):

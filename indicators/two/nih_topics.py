@@ -72,10 +72,10 @@ def get_nih_projects(from_date="2015-01-01", geo_split=False):
     if geo_split:
         geo_lookup = get_nih_geo_lookup()
         for geo_code, ids in geo_lookup.items():
-            _projects = list(filter(lambda p: p['id'] in ids, projects))
-            yield _projects, geo_code
+            indexes = list(p['id'] in ids for p in projects)
+            yield indexes, geo_code
     else:
-        yield projects, None
+        return projects
 
 
 def fit_nih_topics(n_topics=150):

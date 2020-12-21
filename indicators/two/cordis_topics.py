@@ -183,15 +183,15 @@ def get_cordis_projects(from_date="2015-01-01", geo_split=False):
     if geo_split:
         geo_lookup = get_cordis_geo_lookup()
         for iso_code, rcns in geo_lookup.items():
-            _projects = list(filter(lambda p: p['rcn'] in rcns, projects))
-            yield f'iso_{iso_code}', _projects
+            indexes = list(p['rcn'] in rcns for p in projects)
+            yield indexes, f'iso_{iso_code}'
             # Convert to NUTS code if in EU
             nuts_code = iso_to_nuts(iso_code)
             if nuts_code is None:
                 continue
-            yield _projects, nuts_code
+            yield indexes, nuts_code
     else:
-        yield projects, None
+        return projects
 
 
 def fit_cordis_topics(n_topics=150):
