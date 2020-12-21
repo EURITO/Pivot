@@ -1,36 +1,16 @@
-# %%
+"""
+"""
 
+from collections import defaultdict
 from functools import lru_cache
 
-from sqlalchemy.sql.operators import from_
-from indicators.core.nlp_utils import fit_topics, vectorise_docs
 from indicators.core.constants import EU_COUNTRIES
-from nesta.core.orms.orm_utils import get_mysql_engine, db_session
-
+from indicators.core.nlp_utils import fit_topics, vectorise_docs
+from indicators.core.nuts_utils import NutsFinder  # , get_nuts_info_lookup
 from nesta.core.orms.arxiv_orm import Article as Art
 from nesta.core.orms.arxiv_orm import ArticleInstitute as Link
 from nesta.core.orms.grid_orm import Institute as Inst
-from nesta.core.orms.orm_utils import get_mysql_engine, db_session
-from nuts_finder import NutsFinder as _NutsFinder
-
-from collections import defaultdict
-
-NUTS_FIELDNAME_CONVERSION = {'nuts_code': 'NUTS_ID',
-                             'nuts_level': 'LEVL_CODE', 'nuts_name': 'NUTS_NAME'}
-
-
-@lru_cache
-def NutsFinder():
-    return _NutsFinder()
-
-
-def get_nuts_info_lookup():
-    nf = NutsFinder()
-    lookup = {item['properties']['NUTS_ID']: {'nuts_name': item['properties']['NAME_LATN'],
-                                              'nuts_level': item['properties']['LEVL_CODE'],
-                                              'nuts_code': item['properties']['NUTS_ID']}
-              for item in nf.shapes['features']}
-    return lookup
+from nesta.core.orms.orm_utils import db_session, get_mysql_engine
 
 
 @ lru_cache()
@@ -54,19 +34,14 @@ def get_arxiv_geo_lookup():
                        for id, lat, lon in q.all()}
 
     nuts_reverse = defaultdict(set)
-    iso_lookup = {}
     with db_session(engine) as session:
         q = session.query(Inst.id, Inst.country_code)
         for id, code in q.all():
             nuts_reverse[f'iso_{code}'].add(id)
-            iso_lookup[id] = code
     for id, nuts_info in nuts_lookup.values():
         for nuts_region in nuts_info:
             nuts_id = nuts_region['NUTS_ID']
             nuts_reverse[nuts_id].add(id)
-#             region_info = {
-#                k: nuts_region[v]
-#                for k, v in NUTS_FIELDNAME_CONVERSION.items()
     return nuts_reverse
 
 
@@ -91,18 +66,35 @@ def _get_arxiv_articles(from_date="2015-01-01"):
 
 
 def get_arxiv_articles(from_date="2015-01-01", geo_split=False):
+    """[summary]
+
+    Args:
+        from_date (str, optional): [description]. Defaults to "2015-01-01".
+        geo_split (bool, optional): [description]. Defaults to False.
+
+    Yields:
+        [type]: [description]
+    """
     articles = _get_arxiv_articles(from_date=from_date)
     if geo_split:
-        nuts_info_lookup = get_nuts_info_lookup()
+        #nuts_info_lookup = get_nuts_info_lookup()
         nuts_reverse = get_arxiv_geo_lookup()
         for geo_code, ids in nuts_reverse.items():
             _articles = filter(lambda article: article['id'] in ids, articles)
-            yield _articles, geo_code, nuts_info_lookup
+            yield _articles, geo_code  # , nuts_info_lookup
     else:
-        yield articles, None, None
+        yield articles, None  # , None
 
 
 def fit_arxiv_topics(n_topics=150):
+    """[summary]
+
+    Args:
+        n_topics (int, optional): [description]. Defaults to 150.
+
+    Returns:
+        [type]: [description]
+    """
     articles = get_arxiv_articles()
     doc_vectors, feature_names = vectorise_docs([a['text'] for a in articles])
     titles = [a['title'] for a in articles]
@@ -111,5 +103,3 @@ def fit_arxiv_topics(n_topics=150):
                              feature_names=feature_names, titles=titles,
                              n_topics=n_topics, anchors=anchors)
     return articles, topic_model
-
-# %%

@@ -1,5 +1,4 @@
 
-# %%
 '''
 EU Covid Projects
 =================
@@ -10,17 +9,22 @@ to Cordis's hard labels.
 
 from datetime import timedelta
 from functools import lru_cache
+from itertools import groupby
 import re
 import numpy as np
 import requests_cache
 from requests.adapters import HTTPAdapter, Retry
 from transformers import AutoTokenizer
 from transformers.modeling_bart import BartForSequenceClassification
+from indicators.core.constants import EU_COUNTRIES
 
+from indicators.core.nuts_utils import NutsFinder, get_nuts_info_lookup
 from indicators.core.nlp_utils import fit_topics, vectorise_docs
 
 from nesta.core.orms.orm_utils import db_session, get_mysql_engine
 from nesta.core.orms.cordis_orm import Project
+from nesta.core.orms.cordis_orm import ProjectOrganisation as Link
+from nesta.core.orms.cordis_orm import Organisation as Org
 
 requests_cache.install_cache(expire_after=timedelta(weeks=1))
 
@@ -115,8 +119,8 @@ def get_crisis_rcns(page_size=100):
     return data
 
 
-@ lru_cache()
-def get_cordis_projects(from_date="2015-01-01"):
+@lru_cache()
+def _get_cordis_projects(from_date="2015-01-01"):
     """[summary]
 
     Returns:
@@ -131,6 +135,63 @@ def get_cordis_projects(from_date="2015-01-01"):
         return [dict(rcn=rcn, text=text, title=title,
                      start_date=start_date, funding=funding)
                 for rcn, text, title, start_date, funding in query.all()]
+
+
+def sort_and_groupby(iterable, grouper_idx=0, value_idx=1):
+    """[summary]
+
+    Args:
+        iterable ([type]): [description]
+        grouper_idx (int, optional): [description]. Defaults to 0.
+        value_idx (int, optional): [description]. Defaults to 1.
+
+    Yields:
+        [type]: [description]
+    """
+    for group, values in groupby(sorted(iterable, key=lambda x: x[grouper_idx]), key=lambda x: x[grouper_idx]):
+        yield group, set(v[value_idx] for v in values)
+
+
+@lru_cache
+def get_cordis_geo_lookup():
+    """
+
+    Returns:
+        [type]: [description]
+    """
+    engine = get_mysql_engine("MYSQLDB", "mysqldb", "production")
+    with db_session(engine) as session:
+        query = session.query(Link.project_rcn, Org.country_code)
+        query = query.join(Org, Link.organization_id == Org.id)
+        query = query.filter(Org.country_code != "")
+        geo_lookup = {isocode: rcns for isocode,
+                      rcns in sort_and_groupby(query.all())}
+    return geo_lookup
+
+
+def get_cordis_projects(from_date="2015-01-01", geo_split=False):
+    """[summary]
+
+    Args:
+        from_date (str, optional): [description]. Defaults to "2015-01-01".
+        geo_split (bool, optional): [description]. Defaults to False.
+
+    Yields:
+        [type]: [description]
+    """
+    projects = _get_cordis_projects(from_date=from_date)
+    if geo_split:
+        geo_lookup = get_cordis_geo_lookup()
+        for iso_code, rcns in geo_lookup.items():
+            _projects = list(filter(lambda p: p['rcn'] in rcns, projects))
+            yield f'iso_{iso_code}', _projects
+            # Convert to NUTS code if in EU
+            nuts_code = iso_to_nuts(iso_code)
+            if nuts_code is None:
+                continue
+            yield _projects, nuts_code
+    else:
+        yield projects, None
 
 
 def fit_cordis_topics(n_topics=150):

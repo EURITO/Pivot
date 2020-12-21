@@ -1,4 +1,5 @@
-# %%
+"""
+"""
 
 from functools import lru_cache
 from indicators.core.nlp_utils import fit_topics, vectorise_docs, join_text
@@ -34,6 +35,14 @@ def get_crunchbase_orgs():
 
 
 def fit_crunchbase_topics(n_topics=150):
+    """[summary]
+
+    Args:
+        n_topics (int, optional): [description]. Defaults to 150.
+
+    Returns:
+        [type]: [description]
+    """
     orgs = get_crunchbase_orgs()
 
     doc_vectors, feature_names = vectorise_docs([o['text'] for o in orgs],

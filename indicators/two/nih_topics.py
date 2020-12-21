@@ -1,5 +1,9 @@
-# %%
+"""
+"""
+
+from collections import defaultdict
 from functools import lru_cache
+from indicators.core.nuts_utils import NutsFinder, iso_to_nuts
 from nesta.core.orms.general_orm import NihProject
 from nesta.core.orms.orm_utils import get_mysql_engine, db_session
 
@@ -7,7 +11,7 @@ from indicators.core.nlp_utils import fit_topics, join_text, vectorise_docs
 
 
 @lru_cache()
-def get_nih_projects(from_date="2015-01-01"):
+def _get_nih_projects(from_date="2015-01-01"):
     """Get all NiH projects from a given start date.
 
     Args:
@@ -28,10 +32,61 @@ def get_nih_projects(from_date="2015-01-01"):
                 if not ((phr is None) and (abstract is None))]
 
 
-# %%
+@lru_cache
+def get_nih_geo_lookup():
+    """
+
+    Returns:
+        [type]: [description]
+    """
+    nf = NutsFinder()
+    engine = get_mysql_engine("MYSQLDB", "mysqldb", "production")
+    with db_session(engine) as session:
+        query = session.query(NihProject.application_id, NihProject.coordinates,
+                              NihProject.is_eu, NihProject.iso2)
+        projects = query.all()
+    nuts_lookup = {id: nf.find(**coords)
+                   for id, coords, is_eu, _ in projects if is_eu}
+
+    nuts_reverse = defaultdict(set)
+    for id, _, _, iso_code in projects:
+        nuts_reverse[f'iso_{iso_code}'].add(id)
+    for id, nuts_info in nuts_lookup.values():
+        for nuts_region in nuts_info:
+            nuts_id = nuts_region['NUTS_ID']
+            nuts_reverse[nuts_id].add(id)
+    return nuts_reverse
+
+
+def get_nih_projects(from_date="2015-01-01", geo_split=False):
+    """[summary]
+
+    Args:
+        from_date (str, optional): [description]. Defaults to "2015-01-01".
+        geo_split (bool, optional): [description]. Defaults to False.
+
+    Yields:
+        [type]: [description]
+    """
+    projects = _get_nih_projects(from_date=from_date)
+    if geo_split:
+        geo_lookup = get_nih_geo_lookup()
+        for geo_code, ids in geo_lookup.items():
+            _projects = list(filter(lambda p: p['id'] in ids, projects))
+            yield _projects, geo_code
+    else:
+        yield projects, None
 
 
 def fit_nih_topics(n_topics=150):
+    """[summary]
+
+    Args:
+        n_topics (int, optional): [description]. Defaults to 150.
+
+    Returns:
+        [type]: [description]
+    """
     projects = get_nih_projects()
     doc_vectors, feature_names = vectorise_docs([p['text'] for p in projects])
     titles = [p['title'] for p in projects]

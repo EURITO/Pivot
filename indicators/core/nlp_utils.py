@@ -1,4 +1,3 @@
-# %%
 """
 NLP utils
 =========
@@ -94,6 +93,21 @@ def vectorise_docs(docs, min_df=10, max_df=0.95, extra_stops=[]):
 
 def fit_topics(dataset_label, doc_vectors, feature_names, titles, n_topics,
                anchors, anchor_strength=10, max_iter=25):
+    """[summary]
+
+    Args:
+        dataset_label ([type]): [description]
+        doc_vectors ([type]): [description]
+        feature_names ([type]): [description]
+        titles ([type]): [description]
+        n_topics ([type]): [description]
+        anchors ([type]): [description]
+        anchor_strength (int, optional): [description]. Defaults to 10.
+        max_iter (int, optional): [description]. Defaults to 25.
+
+    Returns:
+        [type]: [description]
+    """
     kwargs = dict(X=doc_vectors, words=feature_names, docs=titles,
                   anchors=anchors, anchor_strength=anchor_strength)
     label = f'topic-model-{dataset_label}-{n_topics}-{max_iter}'
@@ -109,12 +123,29 @@ def fit_topics(dataset_label, doc_vectors, feature_names, titles, n_topics,
 
 
 def parse_topic(line, n_most=5):
+    """[summary]
+
+    Args:
+        line ([type]): [description]
+        n_most (int, optional): [description]. Defaults to 5.
+
+    Returns:
+        [type]: [description]
+    """
     _, topic_content = line.split(":")
     topic_content = ' '.join(topic_content.split(",")[:-n_most])
     return topic_content
 
 
 def parse_corex_topics(path):
+    """[summary]
+
+    Args:
+        path ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     topics = []
     with open(path) as f:
         for line in f.readlines():
