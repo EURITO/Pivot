@@ -7,24 +7,25 @@ Code to get Cordis projects and label them as being "Covid" and "non-Covid" acco
 to Cordis's hard labels.
 '''
 
+import re
+from collections import defaultdict
 from datetime import timedelta
 from functools import lru_cache
 from itertools import groupby
-import re
+
 import numpy as np
 import requests_cache
+from indicators.core.constants import EU_COUNTRIES
+from indicators.core.nlp_utils import fit_topics, vectorise_docs
+from indicators.core.nuts_utils import (NutsFinder, get_nuts_info_lookup,
+                                        iso_to_nuts)
+from nesta.core.orms.cordis_orm import Organisation as Org
+from nesta.core.orms.cordis_orm import Project
+from nesta.core.orms.cordis_orm import ProjectOrganisation as Link
+from nesta.core.orms.orm_utils import db_session, get_mysql_engine
 from requests.adapters import HTTPAdapter, Retry
 from transformers import AutoTokenizer
 from transformers.modeling_bart import BartForSequenceClassification
-from indicators.core.constants import EU_COUNTRIES
-
-from indicators.core.nuts_utils import NutsFinder, get_nuts_info_lookup
-from indicators.core.nlp_utils import fit_topics, vectorise_docs
-
-from nesta.core.orms.orm_utils import db_session, get_mysql_engine
-from nesta.core.orms.cordis_orm import Project
-from nesta.core.orms.cordis_orm import ProjectOrganisation as Link
-from nesta.core.orms.cordis_orm import Organisation as Org
 
 requests_cache.install_cache(expire_after=timedelta(weeks=1))
 
@@ -152,7 +153,7 @@ def sort_and_groupby(iterable, grouper_idx=0, value_idx=1):
         yield group, set(v[value_idx] for v in values)
 
 
-@lru_cache
+@lru_cache()
 def get_cordis_geo_lookup():
     """
 
@@ -164,9 +165,13 @@ def get_cordis_geo_lookup():
         query = session.query(Link.project_rcn, Org.country_code)
         query = query.join(Org, Link.organization_id == Org.id)
         query = query.filter(Org.country_code != "")
-        geo_lookup = {isocode: rcns for isocode,
-                      rcns in sort_and_groupby(query.all())}
-    return geo_lookup
+        geo_lookup = {rcn: isocodes for rcn,
+                      isocodes in sort_and_groupby(query.all())}
+    reverse_lookup = defaultdict(set)
+    for rcn, isocodes in geo_lookup.items():
+        for iso in isocodes:
+            reverse_lookup[iso].add(rcn)
+    return reverse_lookup
 
 
 def get_cordis_projects(from_date="2015-01-01", geo_split=False):
@@ -189,9 +194,10 @@ def get_cordis_projects(from_date="2015-01-01", geo_split=False):
             nuts_code = iso_to_nuts(iso_code)
             if nuts_code is None:
                 continue
+
             yield indexes, nuts_code
     else:
-        return projects
+        yield projects
 
 
 def fit_cordis_topics(n_topics=150):

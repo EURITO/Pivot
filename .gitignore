@@ -2,7 +2,8 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,vscode,jupyternotebooks
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,vscode,jupyternotebooks
 
-
+*csv
+*json
 *txt
 *pickle
 *pdf

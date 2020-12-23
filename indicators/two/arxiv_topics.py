@@ -13,7 +13,7 @@ from nesta.core.orms.grid_orm import Institute as Inst
 from nesta.core.orms.orm_utils import db_session, get_mysql_engine
 
 
-@ lru_cache()
+@lru_cache()
 def get_arxiv_geo_lookup():
     """[summary]
 
@@ -30,15 +30,19 @@ def get_arxiv_geo_lookup():
             q = q.filter(field != None)
         q = q.filter(Inst.country_code.in_(EU_COUNTRIES))
         q = q.group_by(Inst.id)
-        nuts_lookup = {id: nf.find(lat=lat, lon=lon)
-                       for id, lat, lon in q.all()}
+        result = list(q.all())
+    nuts_lookup = {id: nf.find(lat=lat, lon=lon) for id, lat, lon in result}
 
     nuts_reverse = defaultdict(set)
+    engine = get_mysql_engine("MYSQLDB", "mysqldb", "production")
     with db_session(engine) as session:
-        q = session.query(Inst.id, Inst.country_code)
+        q = session.query(Link.article_id, Inst.country_code)
+        q = q.join(Link, Link.institute_id == Inst.id, isouter=True)
         for id, code in q.all():
+            if code is None:
+                continue
             nuts_reverse[f'iso_{code}'].add(id)
-    for id, nuts_info in nuts_lookup.values():
+    for id, nuts_info in nuts_lookup.items():
         for nuts_region in nuts_info:
             nuts_id = nuts_region['NUTS_ID']
             nuts_reverse[nuts_id].add(id)
@@ -58,11 +62,12 @@ def _get_arxiv_articles(from_date="2015-01-01"):
     engine = get_mysql_engine("MYSQLDB", "mysqldb", "production")
     with db_session(engine) as session:
         query = session.query(Art.id, Art.abstract,
-                              Art.title, Art.created, Link.grid_id)
-        query = session.join(Link, Link.article_id == Art.id)
+                              Art.title, Art.created)
         query = query.filter(Art.created > from_date)
         query = query.filter(Art.abstract != None)
-        return query.all()
+        articles = [dict(id=id, text=abstract, title=title, created=created)
+                    for id, abstract, title, created in query.all()]
+    return articles
 
 
 def get_arxiv_articles(from_date="2015-01-01", geo_split=False):
@@ -77,13 +82,13 @@ def get_arxiv_articles(from_date="2015-01-01", geo_split=False):
     """
     articles = _get_arxiv_articles(from_date=from_date)
     if geo_split:
-        #nuts_info_lookup = get_nuts_info_lookup()
+        # nuts_info_lookup = get_nuts_info_lookup()
         nuts_reverse = get_arxiv_geo_lookup()
         for geo_code, ids in nuts_reverse.items():
             indexes = list(article['id'] in ids for article in articles)
             yield indexes, geo_code  # , nuts_info_lookup
     else:
-        return articles
+        yield articles
 
 
 def fit_arxiv_topics(n_topics=150):
@@ -95,7 +100,7 @@ def fit_arxiv_topics(n_topics=150):
     Returns:
         [type]: [description]
     """
-    articles = get_arxiv_articles()
+    articles = list(get_arxiv_articles())[0]
     doc_vectors, feature_names = vectorise_docs([a['text'] for a in articles])
     titles = [a['title'] for a in articles]
     anchors = [['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2']]

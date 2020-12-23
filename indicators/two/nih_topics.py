@@ -1,6 +1,5 @@
 """
 """
-
 from collections import defaultdict
 from functools import lru_cache
 from indicators.core.nuts_utils import NutsFinder, iso_to_nuts
@@ -32,7 +31,7 @@ def _get_nih_projects(from_date="2015-01-01"):
                 if not ((phr is None) and (abstract is None))]
 
 
-@lru_cache
+@lru_cache()
 def get_nih_geo_lookup():
     """
 
@@ -45,13 +44,17 @@ def get_nih_geo_lookup():
         query = session.query(NihProject.application_id, NihProject.coordinates,
                               NihProject.is_eu, NihProject.iso2)
         projects = query.all()
-    nuts_lookup = {id: nf.find(**coords)
-                   for id, coords, is_eu, _ in projects if is_eu}
+    nuts_lookup = {id: nf.find(lon=float(coords['lon']),
+                               lat=float(coords['lat']))
+                   for id, coords, is_eu, _ in projects
+                   if is_eu and coords is not None}
 
     nuts_reverse = defaultdict(set)
     for id, _, _, iso_code in projects:
+        if iso_code is None:
+            continue
         nuts_reverse[f'iso_{iso_code}'].add(id)
-    for id, nuts_info in nuts_lookup.values():
+    for id, nuts_info in nuts_lookup.items():
         for nuts_region in nuts_info:
             nuts_id = nuts_region['NUTS_ID']
             nuts_reverse[nuts_id].add(id)
@@ -75,7 +78,7 @@ def get_nih_projects(from_date="2015-01-01", geo_split=False):
             indexes = list(p['id'] in ids for p in projects)
             yield indexes, geo_code
     else:
-        return projects
+        yield projects
 
 
 def fit_nih_topics(n_topics=150):

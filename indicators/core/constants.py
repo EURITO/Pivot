@@ -1,7 +1,7 @@
 """[summary]
 """
 
-EU_COUNTRIES = ['AD', 'AL', 'AT', 'AW',
+EU_COUNTRIES = ['AD', 'AL', 'AT',
                 'AX', 'BA', 'BE', 'BG', 'CH',
                 'CY', 'CZ', 'DE', 'DK', 'EE', 'ES',
                 'FI', 'FR', 'GB',

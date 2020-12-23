@@ -7,7 +7,7 @@ from indicators.core.constants import EU_COUNTRIES
 from nuts_finder import NutsFinder as _NutsFinder
 
 
-@lru_cache
+@lru_cache()
 def NutsFinder():
     """[summary]
 
@@ -17,7 +17,7 @@ def NutsFinder():
     return _NutsFinder()
 
 
-@lru_cache
+@lru_cache()
 def get_nuts_info_lookup():
     """[summary]
 
@@ -29,6 +29,15 @@ def get_nuts_info_lookup():
                                               'nuts_level': item['properties']['LEVL_CODE'],
                                               'nuts_code': item['properties']['NUTS_ID']}
               for item in nf.shapes['features']}
+    # Add edge-cases
+    lookup['BA'] = {'nuts_name': 'Bosnia and Herzegovina',
+                    'nuts_level': 1, 'nuts_code': 'BA'}
+    lookup['SM'] = {'nuts_name': 'San Marino',
+                    'nuts_level': 1, 'nuts_code': 'SM'}
+    lookup['MC'] = {'nuts_name': 'Monaco',
+                    'nuts_level': 1, 'nuts_code': 'MC'}
+    lookup['GI'] = {'nuts_name': 'Gibraltar',
+                    'nuts_level': 1, 'nuts_code': 'GI'}
     return lookup
 
 
