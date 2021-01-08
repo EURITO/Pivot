@@ -1,0 +1,360 @@
+
+# coding: utf-8
+
+# In[4]:
+
+
+get_ipython().magic('load_ext autoreload')
+
+
+# In[14]:
+
+
+get_ipython().run_cell_magic('capture', '', '%autoreload 2\n\nfrom nesta.packages.geo_utils.country_iso_code import country_iso_code_to_name\nfrom nih_topics import get_nih_projects\nfrom cordis_topics import get_cordis_projects\n#from crunchbase_topics import get_crunchbase_orgs\nfrom arxiv_topics import get_arxiv_articles\n\nfrom indicators.core.nuts_utils import get_nuts_info_lookup\nfrom indicators.core.nlp_utils import parse_corex_topics\nimport pandas as pd\nfrom datetime import datetime as dt\nfrom functools import partial\nfrom skbio.diversity.alpha import shannon')
+
+
+# In[23]:
+
+
+def get_objects_and_labels(data_getter, topic_model_path):
+    _objects = list(data_getter())[0]
+    objects = pd.DataFrame(_objects)
+    topics = parse_corex_topics(topic_model_path.format("topics.txt"))
+    labels = pd.read_csv(topic_model_path.format("labels.txt"), names=topics, index_col=0)
+    total_correlation = pd.read_csv(topic_model_path.format("most_deterministic_groups.txt"))
+    is_fluffy = total_correlation[" NTC"].apply(lambda x: abs(x) < 0.02)
+    fluffy_topics = [topics[itopic] for itopic in total_correlation['Group num.'].loc[is_fluffy]]                     
+    non_stop_topics = pd.Series(topics,index=topics)[(labels.mean(axis=0) < 0.3)].values.tolist()
+    antitopics = [t for t in topics if t.count("~") >= 3]
+    labels = labels[(set(non_stop_topics) - set(antitopics)) - set(fluffy_topics)]
+    return objects, labels
+
+def total_activity_by_topic_in_date_range(objs, labels, datefield, norm_days, from_date='2020-03-01', to_date=dt.now()):
+    _date = objs[datefield]
+    total_days = (pd.to_datetime(to_date) - pd.to_datetime(from_date)).days
+    norm = norm_days / total_days
+    slicer = (_date > pd.to_datetime(from_date)) & (_date < pd.to_datetime(to_date))
+    activity = labels[slicer].sum(axis=0).sort_values()
+    return norm * activity
+
+
+def thematic_diversity(objs, labels, datefield, covid_slicer, from_date='2020-03-01'):
+    _date = objs[datefield]
+    date_slicer = _date > pd.to_datetime(from_date)
+    thematic_diversity_covid = shannon(labels.loc[date_slicer & covid_slicer].sum(axis=0))
+    thematic_diversity_noncovid = shannon(labels.loc[date_slicer & ~covid_slicer].sum(axis=0))
+    return thematic_diversity_covid, thematic_diversity_noncovid
+
+
+# In[56]:
+
+
+verbose_indicator_names = {
+                            "total_activity": 'Total activity ({}) since March 2020',
+                            "relative_activity": 'Activity ({}) since March 2020, relative to the expectation from 2015-2019',
+                            "relative_activity_covid": 'Covid-related activity ({}) since March 2020, relative to the expectation from 2015-2019',
+                            "relative_activity_noncovid": 'Non-covid-related activity ({}) since March 2020, relative to the expectation from 2015-2019',
+                            "overrepresentation_activity": 'Over-representation of covid-related activity ({}) since March 2020, compared to non-covid-related projects',
+                            "thematic_diversity": "Shannon diversity of {}"
+                          }
+                           
+                           
+
+def covid_filterer(item):
+    return any(term in item for term in
+               ['covid', 'covid-19', 'coronavirus'])
+
+def _generate_indicators(objects, topic_labels, datefield, old_from_date, old_to_date, weight_field, norm_days):
+    # Apply filter to data based on topic labels and date
+    covid_label = list(filter(covid_filterer, topic_labels))[0]
+    slicer = topic_labels[covid_label] == 1
+    weight = 1 if weight_field is None else objects[weight_field]
+    topic_labels = topic_labels.multiply(weight, axis=0)
+    get_total_activity_all = partial(total_activity_by_topic_in_date_range, objects, topic_labels, datefield, norm_days)
+    get_total_activity_cov = partial(total_activity_by_topic_in_date_range, objects.loc[slicer], topic_labels.loc[slicer], datefield, norm_days)
+    get_total_activity_noncov = partial(total_activity_by_topic_in_date_range, objects.loc[~slicer], topic_labels.loc[~slicer], datefield, norm_days)
+    old_dates = dict(from_date=old_from_date, to_date=old_to_date)
+
+    indicators = {}
+
+    # Levels of activity by topic, total (2020)
+    indicators["total_activity"] = get_total_activity_all()
+
+    # Levels of activity by topic, relative to the average from 2015-2019
+    _norm_past_activity = get_total_activity_all(**old_dates)
+    _norm_past_activity.loc[_norm_past_activity == 0] = 1 # In the case where there is no past activity, take 1 as an upper bound
+    indicators["relative_activity"] = indicators["total_activity"] / _norm_past_activity
+
+    # Levels of activity by topic, relative to the average from 2015-2019, covid tagged
+    _total_activity = get_total_activity_cov()
+    _norm_past_activity = get_total_activity_cov(**old_dates)
+    _norm_past_activity.loc[_norm_past_activity == 0] = 1 # In the case where there is no past activity, take 1 as an upper bound
+    indicators["relative_activity_covid"] = _total_activity / _norm_past_activity
+
+    # Levels of activity by topic, relative to the average from 2015-2019, non-covid tagged
+    _total_activity = get_total_activity_noncov()    
+    _norm_past_activity = get_total_activity_noncov(**old_dates)
+    _norm_past_activity.loc[_norm_past_activity == 0] = 1 # In the case where there is no past activity, take 1 as an upper bound
+    indicators["relative_activity_noncovid"] = _total_activity / _norm_past_activity
+
+    # Overrepresentation (activity) of covid tagged compared to non-covid tagged projects
+    denominator = indicators["relative_activity_noncovid"].copy()
+    denominator.loc[denominator == 0] = 1 # In the case where there is no past activity, take 1 as an upper bound
+    indicators["overrepresentation_activity"] = indicators["relative_activity_covid"] / denominator
+
+    # Thematic diversity (activity) of co-occurring topics of covid tagged compared to non-covid tagged projects
+    thematic_diversity_covid, thematic_diversity_noncovid = thematic_diversity(objects, topic_labels, 
+                                                                               datefield, slicer)
+    indicators["thematic_diversity"] = {"covid-related-projects": thematic_diversity_covid,
+                                        "non-covid-related-projects": thematic_diversity_noncovid}
+    return indicators
+
+    
+def generate_indicators(data_getter, topic_model_path, datefield, old_from_date, old_to_date, covid_start, weight_field=None, geo_split=False):
+    covid_end = dt.now()
+    norm_days = (pd.to_datetime(covid_end) - pd.to_datetime(covid_start)).days
+    objects, topic_labels = get_objects_and_labels(data_getter, topic_model_path)
+    if geo_split:
+        indicators = {geo_label: _generate_indicators(objects.loc[geo_index], topic_labels.loc[geo_index], 
+                                                      datefield, old_from_date, old_to_date, weight_field, norm_days)
+                      for geo_index, geo_label in data_getter(geo_split=True)}
+        return indicators
+    else:
+        return _generate_indicators(objects, topic_labels, datefield, old_from_date, old_to_date, weight_field, norm_days)
+
+
+# In[57]:
+
+
+get_ipython().magic('matplotlib inline')
+
+from matplotlib import pyplot as plt
+from collections import defaultdict
+from matplotlib import cm
+
+def make_parallels(activity):
+    parallels = defaultdict(list)
+    indicator_names = []
+    for indicator_name, indicators in activity.items():
+        if indicator_name.startswith('thematic_diversity'):
+            continue
+        if indicator_name == 'relative_activity_noncovid':
+            continue            
+        indicator_names.append(indicator_name)        
+        for i, (topic, value) in enumerate(indicators.sort_values().items()):
+            score = i/len(indicators)
+            parallels[topic].append(score)
+    return indicator_names, parallels
+
+def make_parallel_plot(activity, dataset, entity_type, activity_type='activity'):
+    cmap = cm.get_cmap('cividis')
+    verbose_indicator_names = {'total_activity': f'Total {activity_type} of topic\nsince March 2020',
+                               'relative_activity': f'{activity_type.title()} of topic since March 2020,\nrelative to expectation of 2015-2019',
+                               'relative_activity_covid': f'{activity_type.title()} of topic since March 2020,\nrelative to expectation of 2015-2019,\nof projects also tagged by Covid topic',
+                               'overrepresentation_activity': f'Overrepresentation (in terms of {activity_type.title()})\nof this topic in Covid-tagged projects'}
+
+    indicator_names, parallels = make_parallels(activity)
+    indicator_names = [verbose_indicator_names[name] for name in indicator_names]
+    
+    # Remove topics which are too prevalent ("stop topics") (first element, v[0] is 'total_activity')
+    parallels = {k: v for k, v in parallels.items() if v[0] < 0.95 and v[0] > 0.05}
+    
+    df = pd.DataFrame(parallels, index=indicator_names).T.reset_index()
+    df['Topic'] = df['index']
+    del df['index']
+    
+    fig, ax = plt.subplots(figsize=(12,15))
+    order = [coords[-1] for coords in parallels.values()]
+    pd.plotting.parallel_coordinates(df, 'Topic', ax=ax, color=map(cmap, order))
+    handles, labels = ax.get_legend_handles_labels()
+    labels, handles, _ = zip(*sorted(zip(labels, handles, order), key=lambda t: -t[2]))
+    legend = ax.legend(handles, labels, bbox_to_anchor=(1.2, 1.05), title='Topics')
+    legend.get_title().set_fontsize(20)
+    ax.set_xlabel('Indicator name', fontsize=20)
+    ax.set_ylabel('Ranking of indicator', fontsize=20)
+    ax.set_title(f"Topic composition of {entity_type.title()}\nDataset: {dataset.title()}\nIndicator of: {activity_type.title()} levels", fontsize=25)
+    return ax
+
+def make_diversity_plot(diversities):
+    fig, ax = plt.subplots(figsize=(10,12))
+
+    cmap = cm.get_cmap('Set2')
+    tick_locations = []
+    for i, (dataset, (ymin, ymax)) in enumerate(diversities.items()):
+        tick_locations.append(i+0.5)
+        ax.vlines(i+0.5, ymin, ymax, colors='k', linestyles='--')
+        if i == 0:
+            ax.scatter(i+0.5, ymin, s=100, color=cmap(1), label='Covid-tagged')
+            ax.scatter(i+0.5, ymax, s=100, color=cmap(2), label='Non-covid-tagged')
+        else:
+            ax.scatter(i+0.5, ymin, s=100, color=cmap(1))
+            ax.scatter(i+0.5, ymax, s=100, color=cmap(2))        
+    ax.set_xticks(tick_locations)
+    ax.set_xticklabels(diversities.keys(), fontsize=20)
+    ax.set_ylabel('Topic diversity of data', fontsize=20)
+    ax.set_xlabel('Dataset', fontsize=30)
+    ax.legend(fontsize=20)
+    return ax
+
+def flatten(nested_dict):
+    items = []
+    for k, v in nested_dict.items():
+        if type(v) is pd.Series:
+            v = dict(v)
+        if type(v) is dict:
+            for v in flatten(v):
+                items.append((k, *v))
+        else:
+            items.append((k, v))
+    return items
+
+
+# In[58]:
+
+
+# # Activity indicators: NiH
+# BASE_PATH = "/Users/jklinger/Nesta/Pivot/indicators/two/topic_iteration/topic-model-{}-100-25"
+# BASE_KWARGS = dict(old_from_date='2015-01-01', old_to_date='2020-01-01', covid_start='2020-03-01')
+
+# data_params = [{'dataset': 'cordis', 'entity_type': 'projects', 'data_getter': get_cordis_projects, 'datefield': 'start_date', 'weight_field':'funding'},
+#                #{'dataset': 'crunchbase', 'entity_type': 'organizations', 'data_getter': get_crunchbase_orgs, 'datefield': 'founded', 'weight_field':'funding'},]
+#                {'dataset': 'nih', 'entity_type': 'projects', 'data_getter': get_nih_projects, 'datefield': 'start_date', 'weight_field':'funding'},
+#                {'dataset': 'arxiv', 'entity_type': 'articles', 'data_getter': get_arxiv_articles, 'datefield': 'created', 'weight_field': None}]
+
+
+# diversities = {}
+# for params in data_params:
+#     weight_field = params.pop('weight_field')
+#     entity_type = params.pop('entity_type')
+#     dataset = params.pop('dataset')
+#     kwargs = dict(topic_model_path=BASE_PATH.format(dataset) + "/{}",
+#                   **BASE_KWARGS, **params)
+#     print("Doing", dataset)
+#     activity_indicators = generate_indicators(**kwargs)
+#     diversities[dataset] = (activity_indicators["thematic_diversity_covid"], activity_indicators["thematic_diversity_noncovid"])
+    
+#     print("Making parallel plot")
+#     make_parallel_plot(activity_indicators, dataset=dataset, entity_type=entity_type)    
+#     if weight_field is not None:
+#         funding_indicators = generate_indicators(weight_field=weight_field, **kwargs)
+#         make_parallel_plot(funding_indicators, dataset=dataset, entity_type=entity_type, activity_type='funding')
+
+# _ = make_diversity_map(diversites)
+
+
+# In[59]:
+
+
+# Activity indicators: NiH
+BASE_PATH = "/Users/jklinger/Nesta/Pivot/indicators/two/topic_iteration/topic-model-{}-100-25"
+BASE_KWARGS = dict(old_from_date='2015-01-01', old_to_date='2020-01-01', covid_start='2020-03-01')
+
+data_params = [{'dataset': 'cordis', 'entity_type': 'projects', 'data_getter': get_cordis_projects, 'datefield': 'start_date', 'weight_field':'funding', 'geo_split': True},
+               {'dataset': 'nih', 'entity_type': 'projects', 'data_getter': get_nih_projects, 'datefield': 'start_date', 'weight_field':'funding', 'geo_split': True},
+               {'dataset': 'arxiv', 'entity_type': 'articles', 'data_getter': get_arxiv_articles, 'datefield': 'created', 'weight_field': None, 'geo_split': True}]
+
+all_indicators = {}
+for params in data_params:
+    weight_field = params.pop('weight_field')
+    entity_type = params.pop('entity_type')
+    dataset = params.pop('dataset')
+    kwargs = dict(topic_model_path=BASE_PATH.format(dataset) + "/{}",
+                  **BASE_KWARGS, **params)
+    print("Doing", dataset)
+    all_indicators[dataset] = generate_indicators(**kwargs)
+    if weight_field is not None:
+        all_indicators[f'{dataset}-funding'] = generate_indicators(weight_field=weight_field, **kwargs)
+
+
+# In[63]:
+
+
+nuts_lookup = get_nuts_info_lookup()
+entity_type = {'cordis': 'projects',
+               'nih': 'projects',
+               'arxiv': 'articles',
+               'cordis-funding': 'funding [€]',
+               'nih-funding': 'funding [$]'}
+
+output = defaultdict(list)
+i = 0
+for ds_name, ctry_code, indc_name, topic_name, indc_value in flatten(all_indicators):
+    if pd.isnull(indc_value) or indc_value == 0:
+        continue    
+    i += 1
+    #if ctry_code in ('AW',):
+    #    continue
+    indc_desc = verbose_indicator_names[indc_name].format(entity_type[ds_name])
+    
+    if ctry_code.startswith('iso_'):
+        ctry_code = ctry_code[4:]
+        nuts_level = 0
+        nuts_name = country_iso_code_to_name(ctry_code, iso2=True)
+        filename = 'by-country.csv'        
+    else:
+        nuts_level = len(ctry_code) - 1
+        nuts_name = nuts_lookup[ctry_code]['nuts_name']
+        filename = f'nuts-{nuts_level}.csv'
+    pseudofile = output[f'{ds_name}/{topic_name}/{filename}']
+    pseudofile.append({'indicator_name': indc_name, 'indicator_value': indc_value, 'indicator_description': indc_desc,
+                       'nuts_level': nuts_level, 'nuts_code': ctry_code, 'nuts_name': nuts_name})
+i
+
+
+# In[64]:
+
+
+import boto3
+from pathlib import Path
+
+s3 = boto3.resource('s3') 
+all_paths = []
+for path, data in output.items():
+    df = pd.DataFrame(data)
+    df = df.sort_values(by=["indicator_name", "nuts_level", "nuts_code"]).reset_index(drop=True).dropna(axis=0)
+    if len(df) == 0:
+        continue
+    Path.mkdir(Path(path).parent, parents=True, exist_ok=True)
+    df.to_csv(path, index=False)
+    s3.Bucket('eurito-csv-indicators').upload_file(path, path)
+    all_paths.append(f'https://eurito-csv-indicators.s3-eu-west-1.amazonaws.com/{path}')
+    del df
+
+pd.DataFrame(all_paths).to_csv("indicator-links.csv", index=False, header=False)
+
+
+# In[35]:
+
+
+len(output), 96399
+
+
+# In[36]:
+
+
+b = s3.Bucket('')
+
+
+# In[40]:
+
+
+for obj in b.objects.all():
+    break
+
+
+# In[74]:
+
+
+# import csv
+# with open('indicator-links.csv','w') as f:
+#     wr = csv.writer(f, dialect='excel')
+#     for path in all_paths:
+#         wr.writerow([path.replace('.s3.', '.s3-eu-west-1.')])
+
+
+# In[51]:
+
+
+
+https://eurito-csv-indicators.s3-eu-west-1.amazonaws.com/nih-funding/aging+age+older+older_adults+age_related/by-country.csv
+
