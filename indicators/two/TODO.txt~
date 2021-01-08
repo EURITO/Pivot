@@ -1,0 +1,4 @@
+1) Refactor relabel and label_suggestions (also using the new wiki_label thing)
+2) Add in examples for generating corex topics
+3) mv all ipynb and datafile into a subfolder
+4) add a readme
