@@ -1,3 +1,2 @@
 .gitattributes !filter !diff
-.env filter=git-crypt diff=git-crypt
 indicators/core/config/** filter=git-crypt diff=git-crypt
