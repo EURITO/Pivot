@@ -1,0 +1,39 @@
+# ---------------------------------
+# Globals / defaults
+dist: xenial
+os: linux
+addons:
+  apt:
+    sources:
+      - docker-xenial
+services:
+  - mysql
+cache: pip
+install:
+  - pip install --upgrade setuptools
+  - python setup.py install
+  - pip uninstall -y eurito-pivot
+before_script:
+  - export PYTHONPATH=$PWD
+  - export CONFDIR=indicators/core/config
+  - cp ${CONFDIR}/__init__.py TMPINIT.PY
+  - rm -r ${CONFDIR}/*
+  - cp TMPINIT.PY ${CONFDIR}/__init__.py
+  # NB: If you want any config for Travis, then make it yourself here:
+  - echo -e "[mysqldb]\nuser=travis" > ${CONFDIR}/mysqldb.config
+  - sudo rm -f /etc/boto.cfg
+  - mysql -e 'CREATE DATABASE tests;'
+  - mysql_upgrade -u root --force
+  - sudo service mysql restart  
+branches:
+  only:
+    - dev
+# ---------------------------------
+# Specify job grid
+jobs:
+  include:
+    # ---------------------------------
+    - name: Unit tests (Linux)
+      language: python
+      python: 3.7
+      script: pytest -x . --disable-pytest-warnings
