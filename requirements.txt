@@ -1,1 +1,2 @@
+networkx>=2.3
 nesta @ git+git://github.com/nestauk/nesta.git@dev#egg=nesta
