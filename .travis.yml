@@ -25,10 +25,7 @@ before_script:
   - mysql -e 'CREATE DATABASE tests;'
   - mysql_upgrade -u root --force
   - sudo service mysql restart  
-branches:
-  only:
-    - master
-    - dev
+all_branches: true
 # ---------------------------------
 # Specify job grid
 jobs:
