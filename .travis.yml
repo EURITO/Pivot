@@ -27,6 +27,7 @@ before_script:
   - sudo service mysql restart  
 branches:
   only:
+    - master
     - dev
 # ---------------------------------
 # Specify job grid
