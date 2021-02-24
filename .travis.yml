@@ -10,9 +10,7 @@ services:
   - mysql
 cache: pip
 install:
-  - pip install --upgrade setuptools
-  - python setup.py install
-  - pip uninstall -y eurito-pivot
+  - python install -r requirements.txt --ignore-installed six
 before_script:
   - export PYTHONPATH=$PWD
   - export CONFDIR=indicators/core/config
