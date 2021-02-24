@@ -1,3 +1,5 @@
 .gitattributes !filter !diff
 indicators/core/config/** filter=git-crypt diff=git-crypt
 indicators/core/config/__init__.py !filter !diff
+indicators/core/config/eu_countries.yaml !filter !diff
+indicators/core/config/nuts_edge_cases.yaml !filter !diff

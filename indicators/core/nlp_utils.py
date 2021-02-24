@@ -12,7 +12,7 @@ import pickle
 import pandas as pd
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
-from indicators.core.config import mysqldb_path
+from indicators.core.config import MYSQLDB_PATH
 
 
 def join_text(*args):

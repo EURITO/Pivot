@@ -1,0 +1,16 @@
+BA:
+  nuts_name: Bosnia and Herzegovina
+  nuts_level: 1
+  nuts_code: BA
+SM:
+  nuts_name: San Marino
+  nuts_level: 1
+  nuts_code: SM
+MC:
+  nuts_name: Monaco
+  nuts_level: 1
+  nuts_code: MC
+GI:
+  nuts_name: Gibraltar
+  nuts_level: 1
+  nuts_code: GI
