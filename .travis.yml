@@ -10,7 +10,7 @@ services:
   - mysql
 cache: pip
 install:
-  - python install -r requirements.txt --ignore-installed six
+  - pip install -r requirements.txt --ignore-installed six
 before_script:
   - export PYTHONPATH=$PWD
   - export CONFDIR=indicators/core/config
