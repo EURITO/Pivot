@@ -72,7 +72,7 @@ def vectorise_docs(docs, min_df=10, max_df=0.95, extra_stops=[]):
 
     """
     # Process the text
-    ngrammer = Ngrammer(config_filepath=mysqldb_path, database="production")
+    ngrammer = Ngrammer(config_filepath=MYSQLDB_PATH, database="production")
     docs = [ngrammer.process_document(doc) for doc in docs]
     # Join and conservatively lemmatise
     docs = map(lambda doc: join_doc(doc, extra_stops), docs)
