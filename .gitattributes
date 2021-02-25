@@ -3,3 +3,7 @@ indicators/core/config/** filter=git-crypt diff=git-crypt
 indicators/core/config/__init__.py !filter !diff
 indicators/core/config/eu_countries.yaml !filter !diff
 indicators/core/config/nuts_edge_cases.yaml !filter !diff
+indicators/core/config/arxiv.yaml !filter !diff
+indicators/core/config/nih.yaml !filter !diff
+indicators/core/config/cordis.yaml !filter !diff
+indicators/core/config/crunchbase.yaml !filter !diff
