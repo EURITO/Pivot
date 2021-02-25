@@ -1,0 +1,3 @@
+dataset_label: arxiv
+n_topics: 150
+anchors: [["covid", "covid_19", "coronavirus", "2019_ncov", "sars_cov_2"]]
