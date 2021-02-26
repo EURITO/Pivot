@@ -9,10 +9,10 @@ from corextopic import vis_topic as vt
 from corextopic import corextopic as ct
 
 import pickle
-import pandas as pd
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from indicators.core.config import MYSQLDB_PATH
+from indicators.core.core_utils import object_getter
 
 
 def join_text(*args):
@@ -158,3 +158,28 @@ def parse_corex_topics(path, n_most=5):
             topic_content = parse_topic(raw_topic, n_most=n_most)
             topics.append(topic_content)
     return topics
+
+
+def fit_topic_model(topic_module, model_config):
+    """Fit topics based on hyperparameters specified in the model config.
+
+    Args:
+        model_config (dict): additional arguments for `fit_topics`
+        object_getter (function): Function for retrieving objects to be fitted.
+
+    Returns:
+        objects, topic_model: List of objects (articles or projects),
+                              and a trained topic model
+    """
+    objs = next(object_getter(topic_module))  # only one value (a list), so use next
+    texts = [obj["text"] for obj in objs]
+    titles = [obj["title"] for obj in objs]
+    # Prepare the data and fit the model
+    doc_vectors, feature_names = vectorise_docs(texts)
+    topic_model = fit_topics(
+        titles=titles,
+        doc_vectors=doc_vectors,
+        feature_names=feature_names,
+        **model_config,
+    )
+    return objs, topic_model
