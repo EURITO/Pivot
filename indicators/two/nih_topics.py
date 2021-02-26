@@ -10,13 +10,13 @@ from functools import lru_cache
 from indicators.core.config import NIH_CONFIG
 from indicators.core.nlp_utils import join_text
 from indicators.core.db import get_mysql_engine
-from nesta.core.orms.arxiv_orm import NihProject as Project
+from nesta.core.orms.general_orm import NihProject as Project
 from nesta.core.orms.orm_utils import db_session
 
 model_config = NIH_CONFIG  # Specify the model config here
 
 
-@lru_cache
+@lru_cache()
 def get_projects():
     engine = get_mysql_engine()
     with db_session(engine) as session:
@@ -75,7 +75,7 @@ def get_objects(from_date):
                 id=id,
                 text=join_text(phr, abstract),
                 title=title,
-                start_date=start_date,
+                created=start_date,
                 funding=funding,
             )
             for id, phr, abstract, title, start_date, funding in query.all()

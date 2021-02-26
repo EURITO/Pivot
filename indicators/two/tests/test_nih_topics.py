@@ -15,7 +15,7 @@ def test_get_projects(mocked_db_session, mocked_get_mysql_engine):
     query = mocked_db_session().__enter__().query()
     query.all.return_value = ["BREADCRUMB"]
     # Result will be False unless the above pattern has been fulfilled
-    assert get_projects == ["BREADCRUMB"]
+    assert get_projects() == ["BREADCRUMB"]
 
 
 @mock.patch(PATH.format("get_projects"))
