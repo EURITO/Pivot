@@ -43,21 +43,3 @@ def test_get_objects(mocked_db_session, mocked_get_mysql_engine):
             "created": "02-01-2020",
         },
     ]
-
-
-# @mock.patch(PATH.format("_get_arxiv_articles"))
-# def test_get_arxiv_articles(mocked_articles):
-#     output = ["1", "two", "THREE"]
-#     mocked_articles.return_value = output
-#     assert next(get_arxiv_articles()) == output
-
-
-# @mock.patch(PATH.format("_get_arxiv_articles"))
-# @mock.patch(PATH.format("get_arxiv_geo_lookup"))
-# def test_get_arxiv_articles_geo_split(mocked_lookup, mocked_articles):
-#     mocked_articles.return_value = [{"id": "1"}, {"id": "two"}, {"id": "THREE"}]
-#     mocked_lookup.return_value = {"FR": {"1", "THREE"}, "DE": {"two", "1"}}
-#     assert list(get_arxiv_articles(geo_split=True)) == [
-#         ([True, False, True], "FR"),
-#         ([True, True, False], "DE"),
-#     ]
