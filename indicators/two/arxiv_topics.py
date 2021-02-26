@@ -9,15 +9,15 @@ from functools import lru_cache
 
 from indicators.core.config import EU_COUNTRIES, ARXIV_CONFIG
 from indicators.core.db import get_mysql_engine
-from indicators.core.nlp_utils import fit_topic_model
-from indicators.core.nuts_utils import get_geo_lookup
 from nesta.core.orms.arxiv_orm import Article as Art
 from nesta.core.orms.arxiv_orm import ArticleInstitute as Link
 from nesta.core.orms.grid_orm import Institute as Inst
 from nesta.core.orms.orm_utils import db_session
 
+model_config = ARXIV_CONFIG  # Specify the model config here
 
-def get_arxiv_eu_insts():
+
+def get_lat_lon():
     """Get all institutes in arXiv which are in Europe
 
     Returns:
@@ -53,7 +53,7 @@ def get_iso2_to_id():
 
 
 @lru_cache()
-def _get_arxiv_articles(from_date):
+def get_objects(from_date):
     """Get all arXiv articles from a given start date.
 
     Args:
@@ -72,32 +72,3 @@ def _get_arxiv_articles(from_date):
             for id, abstract, title, created in query.all()
         ]
     return articles
-
-
-def get_arxiv_articles(from_date="2015-01-01", geo_split=False):
-    """Get all arXiv articles from a given start date. `geo_split`
-    alters the behaviour of the function, such that `geo_split=False`
-    will yield an article, whereas `geo_split=False` yields
-    a tuple of (indexer, geo_code) where indexer can be used to slice
-    `articles`
-
-    Args:
-        from_date (str, optional): Min article creation date. Defaults to "2015-01-01".
-        geo_split (bool, optional): Alter the behaviour to return an indexer
-                                    by geography code. Defaults to False.
-
-    Yields:
-        articles (dict): an article object
-    """
-    articles = _get_arxiv_articles(from_date=from_date)
-    if geo_split:
-        nuts_to_id_lookup = get_geo_lookup(get_arxiv_eu_insts, get_iso2_to_id)
-        for geo_code, ids in nuts_to_id_lookup.items():
-            indexes = list(article["id"] in ids for article in articles)
-            yield indexes, geo_code
-    else:
-        yield articles
-
-
-if __name__ == "__main__":
-    fit_topic_model(ARXIV_CONFIG, get_arxiv_articles)
