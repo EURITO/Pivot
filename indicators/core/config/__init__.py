@@ -1,10 +1,7 @@
 from pathlib import Path
 import os
 import yaml
-import matplotlib
-import logging
 
-logging.getLogger("matplotlib").setLevel(level=logging.CRITICAL)
 PATH_TO_HERE = Path(__file__).resolve().parent
 
 

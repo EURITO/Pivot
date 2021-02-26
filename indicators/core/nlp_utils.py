@@ -160,7 +160,7 @@ def parse_corex_topics(path, n_most=5):
     return topics
 
 
-def fit_topic_model(topic_module, model_config):
+def fit_topic_model(topic_module):
     """Fit topics based on hyperparameters specified in the model config.
 
     Args:
@@ -180,6 +180,6 @@ def fit_topic_model(topic_module, model_config):
         titles=titles,
         doc_vectors=doc_vectors,
         feature_names=feature_names,
-        **model_config,
+        **topic_module.model_config,
     )
     return objs, topic_model
