@@ -158,3 +158,28 @@ def parse_corex_topics(path, n_most=5):
             topic_content = parse_topic(raw_topic, n_most=n_most)
             topics.append(topic_content)
     return topics
+
+
+def fit_topic_model(model_config, object_getter):
+    """Fit topics based on hyperparameters specified in the model config.
+
+    Args:
+        model_config (dict): additional arguments for `fit_topics`
+        object_getter (function): Function for retrieving objects to be fitted.
+
+    Returns:
+        objects, topic_model: List of objects (articles or projects),
+                              and a trained topic model
+    """
+    objs = next(object_getter())  # only one value (a list), so use next
+    texts = [obj["text"] for obj in objs]
+    titles = [obj["title"] for obj in objs]
+    # Prepare the data and fit the model
+    doc_vectors, feature_names = vectorise_docs(texts)
+    topic_model = fit_topics(
+        titles=titles,
+        doc_vectors=doc_vectors,
+        feature_names=feature_names,
+        **model_config,
+    )
+    return objs, topic_model
