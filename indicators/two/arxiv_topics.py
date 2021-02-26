@@ -174,3 +174,7 @@ def fit_arxiv_topics():
         **ARXIV_CONFIG,
     )
     return articles, topic_model
+
+
+if __name__ == "__main__":
+    fit_arxiv_topics()
