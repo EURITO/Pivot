@@ -6,4 +6,4 @@ os.environ["MYSQLDB"] = MYSQLDB_PATH
 
 
 def get_mysql_engine():
-    return get_mysql_engine("MYSQLDB", "mysqldb", "production")
+    return _get_mysql_engine("MYSQLDB", "mysqldb", "production")
