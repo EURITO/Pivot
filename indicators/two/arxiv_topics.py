@@ -120,8 +120,10 @@ def _get_arxiv_articles(from_date):
     engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(Art.id, Art.abstract, Art.title, Art.created)
-        query = query.filter(Art.created > from_date)
+        query = query.filter(Art.created >= from_date)
         query = query.filter(Art.abstract.isnot(None))
+        print(query)
+        print(query.all())
         articles = [
             dict(id=id, text=abstract, title=title, created=created)
             for id, abstract, title, created in query.all()
@@ -160,7 +162,7 @@ def fit_arxiv_topics():
     Returns:
         articles, topic_model: List of articles, and a trained topic model
     """
-    articles = list(get_arxiv_articles())
+    articles = next(get_arxiv_articles())  # only one value (a list), so use next
     texts = [art["text"] for art in articles]
     titles = [art["title"] for art in articles]
     # Prepare the data and fit the model

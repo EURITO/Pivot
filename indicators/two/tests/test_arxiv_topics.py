@@ -4,6 +4,9 @@ from indicators.two.arxiv_topics import (
     make_reverse_lookup,
     get_iso2_to_id_lookup,
     get_arxiv_geo_lookup,
+    _get_arxiv_articles,
+    get_arxiv_articles,
+    fit_arxiv_topics,
 )
 
 PATH = "indicators.two.arxiv_topics.{}"
@@ -62,7 +65,6 @@ def test_get_arxiv_geo_lookup(mocked_get_insts, mocked_get_iso2):
         ("58VE", 51.400, -0.1095),
         ("Potterow", 55.9462, -3.1872),
     ]
-    ids = {"58VE", "Potterow"}
 
     assert get_arxiv_geo_lookup() is get_arxiv_geo_lookup()  # ie cache is working
     assert get_arxiv_geo_lookup() == {
@@ -75,3 +77,52 @@ def test_get_arxiv_geo_lookup(mocked_get_insts, mocked_get_iso2):
         "UKM75": {"Potterow"},
         "GB": "Something else",
     }
+
+
+@mock.patch(PATH.format("get_mysql_engine"))
+@mock.patch(PATH.format("db_session"))
+def test__get_arxiv_articles(mocked_db_session, mocked_get_mysql_engine):
+    query = mocked_db_session().__enter__().query().filter().filter()
+    query.all.return_value = [
+        (1, "some text", "a title", "01-01-2020"),
+        (2, "more text", "another title", "02-01-2020"),
+    ]
+    assert _get_arxiv_articles("01-01-2020") is _get_arxiv_articles(
+        "01-01-2020"
+    )  # ie cache is working
+    assert _get_arxiv_articles("01-01-2020") == [
+        {"id": 1, "text": "some text", "title": "a title", "created": "01-01-2020"},
+        {
+            "id": 2,
+            "text": "more text",
+            "title": "another title",
+            "created": "02-01-2020",
+        },
+    ]
+
+
+@mock.patch(PATH.format("_get_arxiv_articles"))
+def test_get_arxiv_articles(mocked_articles):
+    output = ["1", "two", "THREE"]
+    mocked_articles.return_value = output
+    assert next(get_arxiv_articles()) == output
+
+
+@mock.patch(PATH.format("_get_arxiv_articles"))
+@mock.patch(PATH.format("get_arxiv_geo_lookup"))
+def test_get_arxiv_articles_geo_split(mocked_lookup, mocked_articles):
+    mocked_articles.return_value = [{"id": "1"}, {"id": "two"}, {"id": "THREE"}]
+    mocked_lookup.return_value = {"FR": {"1", "THREE"}, "DE": {"two", "1"}}
+    assert list(get_arxiv_articles(geo_split=True)) == [
+        ([True, False, True], "FR"),
+        ([True, True, False], "DE"),
+    ]
+
+
+@mock.patch(PATH.format("get_arxiv_articles"))
+@mock.patch(PATH.format("vectorise_docs"), return_value=(None, None))
+@mock.patch(PATH.format("fit_topics"), return_value="topic_model")
+def test_fit_arxiv_topics(mocked_fit, mocked_vec, mocked_get_articles):
+    articles = [{"text": "some text", "title": "a title"}]
+    mocked_get_articles().__next__.return_value = articles
+    assert fit_arxiv_topics() == (articles, "topic_model")
