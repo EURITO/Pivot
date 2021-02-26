@@ -122,8 +122,6 @@ def _get_arxiv_articles(from_date):
         query = session.query(Art.id, Art.abstract, Art.title, Art.created)
         query = query.filter(Art.created >= from_date)
         query = query.filter(Art.abstract.isnot(None))
-        print(query)
-        print(query.all())
         articles = [
             dict(id=id, text=abstract, title=title, created=created)
             for id, abstract, title, created in query.all()
