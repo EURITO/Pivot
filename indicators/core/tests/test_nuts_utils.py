@@ -53,16 +53,14 @@ def test_make_reverse_lookup():
 
 
 def test_get_geo_lookup():
-    mocked_get_insts = mock.MagicMock()
-    mocked_get_iso2 = mock.MagicMock()
-    mocked_get_iso2.return_value = [("Something else", "GB")]
-    mocked_get_insts.return_value = [
+    mocked_module = mock.MagicMock()
+    mocked_module.get_iso2_to_id.return_value = [("Something else", "GB")]
+    mocked_module.get_lat_lon.return_value = [
         ("58VE", 51.400, -0.1095),
         ("Potterow", 55.9462, -3.1872),
     ]
-    args = (mocked_get_insts, mocked_get_iso2)
-    assert get_geo_lookup(*args) is get_geo_lookup(*args)
-    assert get_geo_lookup(*args) == {
+    assert get_geo_lookup(mocked_module) is get_geo_lookup(mocked_module)
+    assert get_geo_lookup(mocked_module) == {
         "UK": {"58VE", "Potterow"},
         "UKI": {"58VE"},
         "UKI6": {"58VE"},

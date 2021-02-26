@@ -94,14 +94,14 @@ def get_geo_lookup(module):
     # Forward lookup
     nf = NutsFinder()
     id_to_nuts_lookup = {
-        id: nf.find(lat=lat, lon=lon) for id, lat, lon in module.lat_lon_getter()
+        id: nf.find(lat=lat, lon=lon) for id, lat, lon in module.get_lat_lon()
     }
     id_nuts = [  # splatten out the nuts IDs, ready for grouping
         (id, info["NUTS_ID"])
         for id, nuts_info in id_to_nuts_lookup.items()
         for info in nuts_info
     ]
-    id_iso2 = module.iso2_to_id_getter()
+    id_iso2 = module.get_iso2_to_id()
     # Reverse lookups
     nuts_to_id_lookup = make_reverse_lookup(id_nuts)
     iso2_to_id_lookup = make_reverse_lookup(id_iso2, prefix="iso_")
