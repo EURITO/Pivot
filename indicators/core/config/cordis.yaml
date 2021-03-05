@@ -5,4 +5,6 @@ anchors:
   # Split out covid from general biology
   - ['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2', 'infection', 'immunity']
   - ['cells', 'cell', 'cellular', 'proteins', 'in_vivo', 'in_vitro', 'protein', 'mouse', 'expression']
-
+metadata:
+  entity_type: 'projects'
+  funding_currency: "€"

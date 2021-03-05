@@ -174,6 +174,8 @@ def fit_topic_model(topic_module):
     objs = next(object_getter(topic_module))  # only one value (a list), so use next
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
+    # Don't need the metadata for topic modelling
+    topic_module.model_config.pop("metadata")
     # Prepare the data and fit the model
     doc_vectors, feature_names = vectorise_docs(texts)
     topic_model = fit_topics(

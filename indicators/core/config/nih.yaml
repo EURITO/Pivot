@@ -6,3 +6,6 @@ anchors:
   - ["infection", "hiv"]
   - ["infection", "bacteria"]
   - ["infection", "parasite"]
+metadata:
+  entity_type: 'projects'
+  funding_currency: '$'
