@@ -15,5 +15,6 @@ NUTS_EDGE_CASES = load_yaml("nuts_edge_cases")
 EU_COUNTRIES = load_yaml("eu_countries")
 ARXIV_CONFIG = load_yaml("arxiv")
 NIH_CONFIG = load_yaml("nih")
+CORDIS_CONFIG = load_yaml("cordis")
 
 os.environ["MYSQLDB"] = MYSQLDB_PATH  # for nesta.get_mysql_engine

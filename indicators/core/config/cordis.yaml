@@ -1,0 +1,8 @@
+dataset_label: cordis
+n_topics: 150
+anchor_strength: 50
+anchors:
+  # Split out covid from general biology
+  - ['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2', 'infection', 'immunity']
+  - ['cells', 'cell', 'cellular', 'proteins', 'in_vivo', 'in_vitro', 'protein', 'mouse', 'expression']
+
