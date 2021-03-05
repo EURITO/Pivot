@@ -1,8 +1,8 @@
 """
-nih_topics
+cordis_topics
 ============
 
-Topic modelling of the NIH data.
+Topic modelling of the Cordis data.
 """
 
 from functools import lru_cache
@@ -16,16 +16,6 @@ from nesta.core.orms.cordis_orm import ProjectOrganisation as Link
 from nesta.core.orms.orm_utils import db_session
 
 model_config = CORDIS_CONFIG  # Specify the model config here
-
-
-@lru_cache()
-def get_projects():
-    engine = get_mysql_engine()
-    with db_session(engine) as session:
-        query = session.query(
-            Project.application_id, Project.coordinates, Project.is_eu, Project.iso2
-        )
-        return query.all()
 
 
 def get_nuts_to_id():
