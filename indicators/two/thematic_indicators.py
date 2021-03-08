@@ -43,12 +43,12 @@ def parse_topics(topic_module):
     return labels
 
 
-def sum_activity_(objs, labels, date_label, indexer=None):
+def sum_activity(objs, labels, date_label, indexer=None):
     """Extract the total activity of the provided objects, by topic in the given date range
 
     Args:
         objs (DataFrame): Objects over which to calculate total activity
-        labels (int): CorEx's binary labels matrix, provided by CorEx.
+        labels (DataFrame): CorEx's binary labels matrix, provided by CorEx.
         date_label (str): Name in the indicator.yaml config file of the date set to use
     Returns:
         activity (float): Total activity over the given time period, scaled to another time period.
