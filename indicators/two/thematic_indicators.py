@@ -43,7 +43,7 @@ def parse_topics(topic_module):
     return labels
 
 
-def sum_activity(objs, labels, date_label, indexer=None):
+def sum_activity_(objs, labels, date_label, indexer=None):
     """Extract the total activity of the provided objects, by topic in the given date range
 
     Args:
