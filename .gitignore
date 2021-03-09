@@ -5,7 +5,7 @@
 *txt
 *pickle
 *pdf
-!indicators/core/tests/*.txt
+!indicators/core/tests/*/*.txt
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
