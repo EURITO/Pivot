@@ -47,13 +47,10 @@ def thematic_diversity(objs, labels, is_covid):
     Args:
         objs (DataFrame): Objects over which to calculate total activity
         labels (int): CorEx's binary labels matrix, provided by CorEx.
-        datefield (str): The name of the date column in the dataframe.
         is_covid (Series): boolean indexer, indicating projects tagged as covid
                            and non-covid related.
-        from_date (str, default='2020-03-01'): The start of the date range to consider.
     Returns:
-        diversity_covid, diversity_noncovid: Thematic diversity for covid-related
-                                             and non-covid-related objects.
+        diversity: Thematic diversity for covid-related non-covid-related objects.
     """
     _date = objs["created"]
     from_date = INDICATORS["covid_dates"]["from_date"]
@@ -111,7 +108,7 @@ def generate_indicators(topic_module, geo_index, weight_field):
 
     # Convenience methods for making indicators
     sum_activity_ = partial(sum_activity, objects, topics)
-    total_activity = sum_activity_("covid_dates")
+    total_activity = partial(sum_activity_, "covid_dates")
     sum_activity_covid = partial(sum_activity_, indexer=is_covid)
     sum_activity_noncovid = partial(sum_activity_, indexer=~is_covid)
     diversity = partial(thematic_diversity, objects, topics)
@@ -135,7 +132,9 @@ def generate_indicators(topic_module, geo_index, weight_field):
     indicators["overrepresentation_activity"] = safe_divide(
         indicators["relative_activity_covid"], indicators["relative_activity_noncovid"]
     )
-    return indicators
+
+    # Convert all to dict
+    return {k: dict(v) for k, v in indicators.items()}
 
 
 def indicators_by_geo(topic_module, weight_field=None):
