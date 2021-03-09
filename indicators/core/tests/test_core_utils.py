@@ -22,3 +22,7 @@ def test_object_getter_split(mocked_lookup):
         ([True, False, True], "FR"),
         ([True, True, False], "DE"),
     ]
+
+
+def test_parse_corex_paths():
+    pass
