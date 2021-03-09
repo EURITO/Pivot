@@ -214,12 +214,18 @@ def parse_corex_paths(topic_module):
 
 @lru_cache()
 def get_corex_labels(topic_module):
+    """Retrieve CoreX topic labels from output of a CorEx run"""
     corex_paths = parse_corex_paths(topic_module)
     topics = parse_corex_topics(topic_module)
     return pd.read_csv(corex_paths["labels"], names=topics, index_col=0)
 
 
 def get_non_stop_topics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "stop" if they occur in
+    more than `stop_topic_threshold` fraction of all documents. Then return the
+    set of all topic labels which are not stops.
+    """
     topics = parse_corex_topics(topic_module)
     labels = get_corex_labels(topic_module)
     is_not_stop = labels.mean(axis=0) < CONFIG["stop_topic_threshold"]
@@ -228,11 +234,26 @@ def get_non_stop_topics(topic_module):
 
 
 def get_antitopics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "antitopics" if they contain
+    a large number (`max_antitopic_count`) of terms which are anti-correlated with
+    a topic occurence. That isn't to say that these are really "bad" topics,
+    but rather they are very hard to intepret. For example, "~chicken ~building people"
+    would imply a topic in which the terms "chicken" or "building" don't appear, and
+    so the "physical" interpretation is difficult.
+    """
     topics = parse_corex_topics(topic_module)
     return set(t for t in topics if t.count("~") > CONFIG["max_antitopic_count"])
 
 
 def get_fluffy_topics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "fluffy" if they explain little
+    total correlation. This corresponds to the `NTC` variable in the
+    `most_deterministic_groups` output, and is filtered against the a
+    `fluffy_threshold` config variable. These could be interpretted as "noisy"
+    topics.
+    """
     corex_paths = parse_corex_paths(topic_module)
     topics = parse_corex_topics(topic_module)
     total_corr = pd.read_csv(corex_paths["most_deterministic_groups"])
@@ -242,6 +263,15 @@ def get_fluffy_topics(topic_module):
 
 
 def parse_clean_topics(topic_module):
+    """
+    Retrieve all CorEx topics and filter for "nice" topics.
+
+    Args:
+        topic_module (module): A topic module, e.g. arxiv_topics
+    Returns:
+        labels (pd.DataFrame): Binary labels for each document in the model with
+                               only "nice" topics considered.
+    """
     fluffy_topics = get_fluffy_topics(topic_module)
     antitopics = get_antitopics(topic_module)
     non_stop_topics = get_non_stop_topics(topic_module)
