@@ -5,6 +5,7 @@ from indicators.core.indicator_utils import (
     safe_divide,
 )
 from indicators.core.nlp_utils import parse_clean_topics
+from indicators.core.core_utils import object_getter
 
 import pandas as pd
 from functools import partial
@@ -141,7 +142,7 @@ def indicators_by_geo(topic_module, weight_field=None):
     """Generate indicators for all available geographic splits of this dataset"""
     indicators = {
         geo_name: generate_indicators(topic_module, geo_idx, weight_field)
-        for geo_idx, geo_name in topic_module.get_objects(geo_split=True)
+        for geo_idx, geo_name in object_getter(topic_module, geo_split=True)
     }
     return indicators
 

@@ -159,13 +159,12 @@ def test_thematic_diversity(objects, topic_counts):
 
 
 @mock.patch(PATH.format("generate_indicators"), return_value=101)
-def test_indicators_by_geo(mocked_generate):
-    topic_module = mock.Mock()
-    topic_module.get_objects.return_value = {
-        "geo1": "geo one",
-        "geo2": "geo two",
-    }.items()
-    assert indicators_by_geo(topic_module) == {"geo one": 101, "geo two": 101}
+@mock.patch(
+    PATH.format("object_getter"),
+    return_value={"geo1": "geo one", "geo2": "geo two"}.items(),
+)
+def test_indicators_by_geo(mocked_getter, mocked_generate):
+    assert indicators_by_geo(None) == {"geo one": 101, "geo two": 101}
 
 
 @mock.patch(PATH.format("indicators_by_geo"), return_value=102)
