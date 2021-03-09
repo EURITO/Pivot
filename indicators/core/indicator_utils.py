@@ -132,6 +132,7 @@ def safe_divide(numerator, denominator):
     """
     In the case where there is no past activity, take 1 as an upper bound
     """
+    denominator = denominator.copy()  # Don't change the original data
     denominator.loc[denominator == 0] = 1
     return numerator / denominator
 

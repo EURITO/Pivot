@@ -5,14 +5,20 @@ NLP utils
 """
 
 import os
+from pathlib import Path
+import pickle
+from functools import lru_cache
+
 from corextopic import vis_topic as vt
 from corextopic import corextopic as ct
+import pandas as pd
 
-import pickle
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
-from indicators.core.config import MYSQLDB_PATH
+from indicators.core.config import MYSQLDB_PATH, INDICATORS
 from indicators.core.core_utils import object_getter
+
+CONFIG = INDICATORS["topic_parsing"]  # topic parsing config
 
 
 def join_text(*args):
@@ -82,6 +88,11 @@ def vectorise_docs(docs, min_df=10, max_df=0.95, extra_stops=[]):
     return doc_vectors, vec.get_feature_names()
 
 
+def make_model_label(dataset_label, n_topics, max_iter, **kwargs):
+    """Standardised label for datasets from model config"""
+    return f"topic-model-{dataset_label}-{n_topics}-{max_iter}"
+
+
 def fit_topics(
     dataset_label,
     doc_vectors,
@@ -117,7 +128,7 @@ def fit_topics(
         anchor_strength=anchor_strength,
     )
     # Use Corex tools for writing the data to the local directory
-    label = f"topic-model-{dataset_label}-{n_topics}-{max_iter}"
+    label = make_model_label(dataset_label, n_topics, max_iter)
     vt.vis_rep(topic_model, column_label=feature_names, prefix=label)
     os.remove(f"{label}/cont_labels.txt")  # Very large file that we don't use
     # pickle model for later use
@@ -126,22 +137,23 @@ def fit_topics(
     return topic_model
 
 
-def parse_topic(raw_topic, n_most):
+def parse_topic(raw_topic):
     """Convert a verbose Corex topic into a concise human-readable form.
 
     Args:
       raw_topic(str): Verbose Corex topic
-      n_most(int): Maximum number of terms to extract from the topic
 
     Returns:
       topic_content(str): Concise human-readable Corex topic
     """
+    n_most = CONFIG["terms_in_topics"]
     _, topic_content = raw_topic.split(":")
     topic_content = " ".join(topic_content.split(",")[:n_most])
     return topic_content
 
 
-def parse_corex_topics(path, n_most=5):
+@lru_cache()
+def parse_corex_topics(topic_module):
     """Parse concise human-readable topics from the output
     of a Corex topic model.
 
@@ -152,10 +164,11 @@ def parse_corex_topics(path, n_most=5):
     Returns:
       topics(list): List of concise human-readable topics
     """
+    corex_paths = parse_corex_paths(topic_module)
     topics = []
-    with open(path) as f:
+    with open(corex_paths["topics"]) as f:
         for raw_topic in f.readlines():
-            topic_content = parse_topic(raw_topic, n_most=n_most)
+            topic_content = parse_topic(raw_topic)
             topics.append(topic_content)
     return topics
 
@@ -185,3 +198,52 @@ def fit_topic_model(topic_module):
         **topic_module.model_config,
     )
     return objs, topic_model
+
+
+@lru_cache()
+def parse_corex_paths(topic_module):
+    """Get a lookup to all of CorEx's .txt output paths"""
+    label = make_model_label(**topic_module.model_config)
+    top_dir = Path(topic_module.__file__).parent
+    return {
+        fname.stem: fname
+        for fname in (top_dir / label).iterdir()
+        if fname.suffix == ".txt"
+    }
+
+
+@lru_cache()
+def get_corex_labels(topic_module):
+    corex_paths = parse_corex_paths(topic_module)
+    topics = parse_corex_topics(topic_module)
+    return pd.read_csv(corex_paths["labels"], names=topics, index_col=0)
+
+
+def get_non_stop_topics(topic_module):
+    topics = parse_corex_topics(topic_module)
+    labels = get_corex_labels(topic_module)
+    is_not_stop = labels.mean(axis=0) < CONFIG["stop_topic_threshold"]
+    non_stop_topics = pd.Series(topics, index=topics)[is_not_stop].values.tolist()
+    return set(non_stop_topics)
+
+
+def get_antitopics(topic_module):
+    topics = parse_corex_topics(topic_module)
+    return set(t for t in topics if t.count("~") > CONFIG["max_antitopic_count"])
+
+
+def get_fluffy_topics(topic_module):
+    corex_paths = parse_corex_paths(topic_module)
+    topics = parse_corex_topics(topic_module)
+    total_corr = pd.read_csv(corex_paths["most_deterministic_groups"])
+    fluffy = total_corr[" NTC"].apply(lambda x: abs(x) < CONFIG["fluffy_threshold"])
+    fluffy_topics = [topics[itopic] for itopic in total_corr["Group num."].loc[fluffy]]
+    return set(fluffy_topics)
+
+
+def parse_clean_topics(topic_module):
+    fluffy_topics = get_fluffy_topics(topic_module)
+    antitopics = get_antitopics(topic_module)
+    non_stop_topics = get_non_stop_topics(topic_module)
+    labels = get_corex_labels(topic_module)
+    return labels[(non_stop_topics - antitopics) - fluffy_topics]

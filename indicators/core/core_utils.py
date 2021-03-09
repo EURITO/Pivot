@@ -1,4 +1,5 @@
 from indicators.core.nuts_utils import get_geo_lookup
+from pathlib import Path
 import pandas as pd
 
 
@@ -30,15 +31,11 @@ def object_getter(topic_module, from_date="2015-01-01", geo_split=False):
 
 def flatten(nested_dict):
     """Convert nested dictionary into flat list of tuples.
-
     E.g.
-
         {'a': {'b': 'c', 'd': 'e'}}
 
     becomes
-
         [('a', 'b', 'c'), ('a', 'd', 'e')]
-
     """
     items = []
     for k, v in nested_dict.items():
