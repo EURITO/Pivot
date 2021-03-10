@@ -1,3 +1,4 @@
 PyYAML>=5.3.0
 networkx>=2.3
 nesta @ git+git://github.com/nestauk/nesta.git@dev#egg=nesta
+skbio>=0.5.6
