@@ -1,9 +1,9 @@
+from indicators.core.config import INDICATORS
 from indicators.core.nuts_utils import get_geo_lookup
-from pathlib import Path
 import pandas as pd
 
 
-def object_getter(topic_module, from_date="2015-01-01", geo_split=False):
+def object_getter(topic_module, geo_split=False):
     """Get all object from a given start date. `geo_split`
     alters the behaviour of the function, such that `geo_split=False`
     will yield an article, whereas `geo_split=False` yields
@@ -19,11 +19,12 @@ def object_getter(topic_module, from_date="2015-01-01", geo_split=False):
     Yields:
         objects (list(dict))
     """
+    from_date = INDICATORS["precovid_dates"]["from_date"]
     objects = topic_module.get_objects(from_date=from_date)
     if geo_split:
         nuts_to_id_lookup = get_geo_lookup(topic_module)
         for geo_code, ids in nuts_to_id_lookup.items():
-            indexes = list(article["id"] in ids for article in objects)
+            indexes = list(obj["id"] in ids for obj in objects)
             yield indexes, geo_code
     else:
         yield objects

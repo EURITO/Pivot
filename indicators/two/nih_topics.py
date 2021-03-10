@@ -6,6 +6,7 @@ Topic modelling of the NIH data.
 """
 
 from functools import lru_cache
+import logging
 
 from indicators.core.config import NIH_CONFIG
 from indicators.core.nlp_utils import join_text
@@ -18,6 +19,7 @@ model_config = NIH_CONFIG  # Specify the model config here
 
 @lru_cache()
 def get_projects():
+    logging.info("Retrieving all projects geography")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(
@@ -26,6 +28,7 @@ def get_projects():
         return query.all()
 
 
+@lru_cache()
 def get_lat_lon():
     """Get all institutes in NIH which are in Europe
 
@@ -40,6 +43,7 @@ def get_lat_lon():
     ]
 
 
+@lru_cache()
 def get_iso2_to_id():
     """
     Fetch and curate a lookup table of ISO2 code to
@@ -59,6 +63,7 @@ def get_objects(from_date):
     Returns:
         articles (list): List of arXiv article data.
     """
+    logging.info(f"Retrieving projects from at least {from_date}")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(

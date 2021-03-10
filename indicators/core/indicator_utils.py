@@ -4,14 +4,14 @@ from indicators.core.config import INDICATORS
 from indicators.core.core_utils import flatten
 from indicators.core.nuts_utils import get_nuts_info_lookup
 
-
 import boto3
 import pandas as pd
 from collections import defaultdict
 from pathlib import Path
+import logging
 
 
-def make_indicator_description(indicator_name, topic_module):
+def make_indicator_description(indicator_name, entity_type):
     """
     Retrieve and format the verbose indicator name for this dataset
 
@@ -27,7 +27,6 @@ def make_indicator_description(indicator_name, topic_module):
         verbose_name (str): The verbose indicator name for this dataset
     """
     # Retrieve one of "articles" or "projects" from the module's config
-    entity_type = topic_module.model_config["metadata"]["entity_type"]
     unformatted_name = INDICATORS["verbose_indicator_names"][indicator_name]
     return unformatted_name.format(entity_type)
 
@@ -45,11 +44,11 @@ def make_ctry_metadata(ctry_code):
     ctry_code = ctry_code[4:] if is_iso_code else ctry_code
     # Create the metadata object
     ctry_metadata = {
-        "ctry_code": ctry_code,
+        "nuts_code": ctry_code,
         # Define level = 0 for ISOs, else work it out from code length
-        "level": 0 if is_iso_code else len(ctry_code) - 1,
+        "nuts_level": 0 if is_iso_code else len(ctry_code) - 1,
         # Get the name for this code
-        "name": (
+        "nuts_name": (
             country_iso_code_to_name(ctry_code, iso2=True)  # not iso3
             if is_iso_code
             else nuts_lookup[ctry_code]["nuts_name"]
@@ -69,27 +68,39 @@ def prepare_file_data(indicators):
     """
     # Mapping of filepaths pointing to a list of curated data
     all_file_data = defaultdict(list)
-    # Flatten fields from the form [dataset][country][indicator][topic]
-    for ds_name, ctry_code, indc_name, topic_name, indc_value in flatten(indicators):
+    # Flatten fields from the form [dataset][entity][country][indicator][topic][value]
+    for (
+        dataset_name,
+        entity_type,
+        country_code,
+        indicator_name,
+        topic_name,
+        indicator_value,
+    ) in flatten(indicators):
         # Ignore null rows
-        if pd.isnull(indc_value) or indc_value == 0:
+        if pd.isnull(indicator_value) or indicator_value == 0:
             continue
         # Prepare metadata
-        indc_desc = make_indicator_description(indc_name, ds_name)
-        ctry_metadata = make_ctry_metadata(ctry_code)
+        indicator_desc = make_indicator_description(indicator_name, entity_type)
+        ctry_metadata = make_ctry_metadata(country_code)
         filename = ctry_metadata.pop("filename")
-        filepath = f"{ds_name}/{topic_name}/{filename}"
+        filepath = f"{dataset_name}/{topic_name}/{filename}"
         # Add this row to the output
         file_data = all_file_data[filepath]  # create if does not exist
         file_data.append(
             {
-                "indicator_name": indc_name,
-                "indicator_value": indc_value,
-                "indicator_description": indc_desc,
+                "indicator_name": indicator_name,
+                "indicator_value": indicator_value,
+                "indicator_description": indicator_desc,
                 **ctry_metadata,
             }
         )
     return all_file_data
+
+
+def compress_value(value):
+    """Convert to int if if integer, else using 3 decimal points"""
+    return ("%.i" if int(value) == value else "%.3f") % value
 
 
 def sort_and_filter_data(file_data):
@@ -101,6 +112,7 @@ def sort_and_filter_data(file_data):
         df = df.sort_values(by=INDICATORS["variable_order"])
         df = df.reset_index(drop=True)
         df = df.dropna(axis=0)
+        df.indicator_value = df.indicator_value.apply(compress_value).astype(str)
         if len(df) == 0:
             continue
         sorted_file_data[path] = df
@@ -111,6 +123,7 @@ def save_and_upload(sorted_file_data):
     """Save the data locally and to S3"""
     s3 = boto3.resource("s3")
     bucket_name = INDICATORS["bucket_name"]
+    logging.info("Saving and uploading indicators...")
     for path, data in sorted_file_data.items():
         # Create the local save path, if not already done so
         Path.mkdir(Path(path).parent, parents=True, exist_ok=True)
@@ -118,6 +131,7 @@ def save_and_upload(sorted_file_data):
         data.to_csv(path, index=False)
         # Save to S3
         s3.Bucket(bucket_name).upload_file(path, path)
+    logging.info(f"Saved and uploaded {len(sorted_file_data)} sets of indicators")
 
 
 def _days_of_covid():

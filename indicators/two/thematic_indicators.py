@@ -7,9 +7,12 @@ from indicators.core.indicator_utils import (
 from indicators.core.nlp_utils import parse_clean_topics
 from indicators.core.core_utils import object_getter
 
+
+from collections import defaultdict
 import pandas as pd
 from functools import partial
 from skbio.diversity.alpha import shannon
+import logging
 
 
 def sum_activity(objs, labels, date_label, indexer=None):
@@ -88,8 +91,9 @@ def relative_activity(activity_summer):
 
 def get_objects_and_topics(topic_module, geo_index, weight_field):
     # Get objects and topics for this topic module
-    object_generator = topic_module.get_objects()
-    objects = pd.DataFrame(list(object_generator)[0])
+    from_date = INDICATORS["precovid_dates"]["from_date"]
+    object_generator = topic_module.get_objects(from_date=from_date)
+    objects = pd.DataFrame(object_generator)
     topics = parse_clean_topics(topic_module)
 
     # Filter out those in this geography
@@ -153,24 +157,27 @@ def make_indicators(*modules):
     total counts and total funding, split by all available geographic levels
     """
     # Generate all indicators
-    indicators = {}
+    indicators = defaultdict(dict)
     for module in modules:
         dataset = module.model_config["dataset_label"]
+        entity = module.model_config["metadata"]["entity_type"]
+        logging.info(f"Making indicators for {dataset}")
         # Indicators wrt to total activity counts
-        indicators[dataset] = indicators_by_geo(module)
+        indicators[dataset][entity] = indicators_by_geo(module)
         # e.g. arXiv does not have funding info
         if "funding_currency" not in module.model_config["dataset_label"]:
             continue
         # Indicators wrt to total funding
         label = f"{dataset}-funding"
-        indicators[label] = indicators_by_geo(module, weight_field="funding")
+        indicators[label][entity] = indicators_by_geo(module, weight_field="funding")
     return indicators
 
 
 if __name__ == "__main__":
     from indicators.two import arxiv_topics, nih_topics, cordis_topics
 
+    logging.getLogger().setLevel(logging.INFO)
     # Indicators in the form [dataset][geo][indicator_name][topic_name]
-    indicators = make_indicators(arxiv_topics, nih_topics, cordis_topics)
+    indicators = make_indicators(arxiv_topics)
     # Flatten, sort, save locally, then upload to S3
     sort_save_and_upload(indicators)
