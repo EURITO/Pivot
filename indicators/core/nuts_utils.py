@@ -94,6 +94,16 @@ def make_reverse_lookup(data, key=itemgetter(1), prefix=""):
 
 @lru_cache()
 def get_geo_lookup(module):
+    """Generate a geographic lookup for a given topic_module (e.g. arxiv_topics)
+    which has a get_lat_lon and get_iso2_to_id method. Output of the form:
+
+        {geography_code: [object_id]}
+
+    where the object_id could be e.g. an article ID in the case of arXiv,
+    or a project ID in the case of NiH or Cordis. NUTS codes are given as is,
+    and ISO2 codes are prefixed with "iso_" to distinguish them from NUTS
+    regions (avoiding any unforeseen ISO-NUTS code clashes).
+    """
     # Forward lookup
     try:
         # Attempt to access lat lon, if get_lat_lon exists

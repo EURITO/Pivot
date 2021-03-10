@@ -4,7 +4,7 @@ anchor_strength: 50
 max_iter: 25
 anchors:
   # Split out covid from general biology
-  - ['covid', 'covid_19', "coronavirus", '2019_ncov', 'sars_cov_2', 'infection', 'immunity']
+  - ['covid_19', "coronavirus", 'sars_cov_2', 'infection', 'immunity']
   - ['cells', 'cell', 'cellular', 'proteins', 'in_vivo', 'in_vitro', 'protein', 'mouse', 'expression']
 metadata:
   entity_type: 'projects'

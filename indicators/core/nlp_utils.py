@@ -2,6 +2,11 @@
 NLP utils
 =========
 
+Utilities for:
+
+* Preparing text data
+* Performing CorEx topic modelling
+* Extracting CorEx topics from flat output
 """
 
 import os
@@ -17,6 +22,7 @@ from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from indicators.core.config import MYSQLDB_PATH, INDICATORS
 from indicators.core.core_utils import object_getter
+
 
 CONFIG = INDICATORS["topic_parsing"]  # topic parsing config
 
@@ -177,8 +183,8 @@ def fit_topic_model(topic_module):
     """Fit topics based on hyperparameters specified in the model config.
 
     Args:
+        topic_module (module): A module for topic modelling e.g. arxiv_topics
         model_config (dict): additional arguments for `fit_topics`
-        object_getter (function): Function for retrieving objects to be fitted.
 
     Returns:
         objects, topic_model: List of objects (articles or projects),
