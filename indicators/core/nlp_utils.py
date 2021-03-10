@@ -16,7 +16,7 @@ from corextopic import corextopic as ct
 import pickle
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
-from indicators.core.config import MYSQLDB_PATH
+from indicators.core.config import MYSQLDB_PATH, INDICATORS
 
 # from indicators.core.core_utils import object_getter  NotImplementedYet
 
@@ -180,7 +180,8 @@ def fit_topic_model(topic_module):
     # The following logic will be simplified to:
     # >> objs = next(object_getter(topic_module))
     # in a subsequent PR
-    objs = next(list(topic_module.get_objects())[0])
+    from_date = INDICATORS["precovid_dates"]["from_date"]
+    objs = next(list(topic_module.get_objects(from_date))[0])
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
     # Prepare the data and fit the model

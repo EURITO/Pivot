@@ -1,7 +1,7 @@
 Prerequisites
 -------------
 
-Make sure that your `PYTHONPATH` contains the path to this repository (`/full/path/to/Pivot/`) and that you have installed the `requirements.txt` for this repository (best doing this in a fresh environment).
+Please make sure that you have followed the instructions for getting started in the `README.md` at the base of this repository.
 
 Topic modellig API description
 ------------------------------
