@@ -2,6 +2,11 @@
 NLP utils
 =========
 
+Utilities for:
+
+* Preparing text data
+* Performing CorEx topic modelling
+* Extracting CorEx topics from flat output
 """
 
 import os
@@ -12,7 +17,8 @@ import pickle
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from indicators.core.config import MYSQLDB_PATH
-from indicators.core.core_utils import object_getter
+
+# from indicators.core.core_utils import object_getter  NotImplementedYet
 
 
 def join_text(*args):
@@ -164,14 +170,17 @@ def fit_topic_model(topic_module):
     """Fit topics based on hyperparameters specified in the model config.
 
     Args:
+        topic_module (module): A module for topic modelling e.g. arxiv_topics
         model_config (dict): additional arguments for `fit_topics`
-        object_getter (function): Function for retrieving objects to be fitted.
 
     Returns:
         objects, topic_model: List of objects (articles or projects),
                               and a trained topic model
     """
-    objs = next(object_getter(topic_module))  # only one value (a list), so use next
+    # The following logic will be simplified to:
+    # >> objs = next(object_getter(topic_module))
+    # in a subsequent PR
+    objs = next(list(topic_module.get_objects())[0])
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
     # Prepare the data and fit the model
