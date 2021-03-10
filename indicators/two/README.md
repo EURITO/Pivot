@@ -3,8 +3,8 @@ Prerequisites
 
 Please make sure that you have followed the instructions for getting started in the `README.md` at the base of this repository.
 
-Topic modellig API description
-------------------------------
+Topic modelling API description
+--------------------------------
 
 Following the design pattern set out in `*_topics.py`, there must be three functions defined per dataset (`arxiv_topics`, `nih_topics`, `cordis_topics`):
 
@@ -17,9 +17,21 @@ Adding a new module into `make_topics` after this is then trivial, assuming that
 Step 1: topic modelling
 -----------------------
 
-Run the following to (re)generate the topics, which are save under a new `{dataset}-*` folder in this directory (note, this will not be versioned):
+Run the following to (re)generate the topics
 
 ```base
 python make_topics.py
 ```
 
+The outputs via CorEx's own I/O are saved locally (i.e. here) under a new `{dataset}-*` folder in this directory (note, this will not be versioned). The output from this folder is used in the next step
+
+Step 2: Indicator generation
+----------------------------
+
+**Not Yet Implemented: see subsequent PR**
+
+
+Step 3: Topic relabelling via Wikipedia
+----------------------------------------
+
+**Not Yet Implemented: see subsequent PR**

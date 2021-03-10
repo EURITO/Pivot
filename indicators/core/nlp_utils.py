@@ -181,7 +181,7 @@ def fit_topic_model(topic_module):
     # >> objs = next(object_getter(topic_module))
     # in a subsequent PR
     from_date = INDICATORS["precovid_dates"]["from_date"]
-    objs = next(list(topic_module.get_objects(from_date))[0])
+    objs = list(topic_module.get_objects(from_date))
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
     # Prepare the data and fit the model
