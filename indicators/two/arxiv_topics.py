@@ -6,6 +6,7 @@ Topic modelling of the arXiv data.
 """
 
 from functools import lru_cache
+import logging
 
 from indicators.core.config import EU_COUNTRIES, ARXIV_CONFIG
 from indicators.core.db import get_mysql_engine
@@ -23,6 +24,7 @@ def get_lat_lon():
     Returns:
        institutes (tuple): (institute_id, latitude, longitude)
     """
+    logging.info("Retrieving articles lat lon lookup")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         # Join institutes to articles via the link table
@@ -45,10 +47,13 @@ def get_iso2_to_id():
     Fetch and curate a lookup table of ISO2 code to
     the set of article ids for that ISO2 code.
     """
+    logging.info("Retrieving articles iso2 lookup")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         q = session.query(Link.article_id, Inst.country_code)
         q = q.join(Link, Link.institute_id == Inst.id, isouter=True)
+        for field in (Inst.id, Link.article_id):
+            q = q.filter(field.isnot(None))
         return list(q.all())
 
 
@@ -62,6 +67,7 @@ def get_objects(from_date):
     Returns:
         articles (list): List of arXiv article data.
     """
+    logging.info(f"Retrieving articles from at least '{from_date}'")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(Art.id, Art.abstract, Art.title, Art.created)

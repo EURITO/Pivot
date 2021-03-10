@@ -84,6 +84,7 @@ def make_reverse_lookup(data, key=itemgetter(1), prefix=""):
        Grouped object of the form {code: {id1, id2, id3}}
     """
     # Look nuts code --> article id
+    logging.info("Performing reverse lookup")    
     data_wout_null_codes = filter(key, data)  # without null codes
     return {
         f"{prefix}{code}": set(id for id, _ in group)
