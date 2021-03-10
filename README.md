@@ -8,6 +8,8 @@ Note: to use some of the packages under `indicators` you must first install `git
 Installation
 ============
 
+From the base of the repo (i.e. `path/to/Pivot`)
+
 ```bash
 export PYTHONPATH=$PWD:${PYTHONPATH}`
 pip3 install virtualenv
@@ -23,7 +25,7 @@ or
 
 ```
 pip install PyYAML>=5.3.0
-export PYTHONPATH=/path/to/nesta:$PWD
+export PYTHONPATH=/path/to/nesta:$PWD:${PYTHONPATH}
 ```
 
 The second option avoids the need to check out the enormous `nesta` repo, albeit the first option is more convenient.
