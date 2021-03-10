@@ -19,7 +19,7 @@ Step 1: topic modelling
 
 Run the following to (re)generate the topics
 
-```base
+```bash
 python make_topics.py
 ```
 
@@ -28,8 +28,13 @@ The outputs via CorEx's own I/O are saved locally (i.e. here) under a new `{data
 Step 2: Indicator generation
 ----------------------------
 
-**Not Yet Implemented: see subsequent PR**
+Run the following to (re)generate the thematic indicators
 
+```bash
+python thematic_indicators.py
+```
+
+Note that the output S3 path is located in the `indicators.yaml` file, and is nominally `eurito-csv-indicators-sandbox` (at time of writing), and should be changed to `eurito-csv-indicators` when running "in production". This will also generate the indicators locally, in this directory (note, these will not be versioned) found under directories named `arxiv`, `cordis` and `nih` respectively.
 
 Step 3: Topic relabelling via Wikipedia
 ----------------------------------------

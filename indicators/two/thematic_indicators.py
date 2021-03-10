@@ -178,6 +178,6 @@ if __name__ == "__main__":
 
     logging.getLogger().setLevel(logging.INFO)
     # Indicators in the form [dataset][geo][indicator_name][topic_name]
-    indicators = make_indicators(arxiv_topics)
+    indicators = make_indicators(arxiv_topics, nih_topics, cordis_topics)
     # Flatten, sort, save locally, then upload to S3
     sort_save_and_upload(indicators)
