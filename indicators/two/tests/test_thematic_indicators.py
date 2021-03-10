@@ -91,7 +91,7 @@ def test_relative_activity(mocked_divide):
 @mock.patch(PATH.format("parse_clean_topics"))
 def test_get_objects_and_topics(mocked_parser, objects, topic_counts, geo_index):
     topic_module = mock.Mock()
-    topic_module.get_objects.return_value = [objects]
+    topic_module.get_objects.return_value = objects
     mocked_parser.return_value = topic_counts
 
     # No reweight
@@ -170,4 +170,8 @@ def test_indicators_by_geo(mocked_getter, mocked_generate):
 @mock.patch(PATH.format("indicators_by_geo"), return_value=102)
 def test_make_indicators(mocked_by_geo):
     output = make_indicators(arxiv_topics, nih_topics, cordis_topics)
-    assert output == {"arxiv": 102, "nih": 102, "cordis": 102}
+    assert output == {
+        "arxiv": {"articles": 102},
+        "nih": {"projects": 102},
+        "cordis": {"projects": 102},
+    }
