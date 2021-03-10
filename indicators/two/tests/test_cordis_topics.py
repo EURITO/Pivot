@@ -42,14 +42,14 @@ def test_get_objects(mocked_db_session, mocked_get_mysql_engine):
     assert get_objects("01-01-2020") is get_objects("01-01-2020")  # ie cache is working
     assert get_objects("01-01-2020") == [
         {
-            "rcn": 1,
+            "id": 1,
             "text": "the text",
             "title": "the title",
             "created": "01-01-2020",
             "funding": "funding1",
         },
         {
-            "rcn": 2,
+            "id": 2,
             "text": "more text",
             "title": "more title",
             "created": "02-01-2020",

@@ -61,6 +61,6 @@ def get_objects(from_date):
         )
         query = query.filter(Project.start_date_code > from_date)
         return [
-            dict(rcn=rcn, text=text, title=title, created=date, funding=funding)
+            dict(id=rcn, text=text, title=title, created=date, funding=funding)
             for rcn, text, title, date, funding in query.all()
         ]
