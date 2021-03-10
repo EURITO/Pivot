@@ -20,7 +20,7 @@ def test_get_lat_lon(mocked_db_session, mocked_get_mysql_engine):
 @mock.patch(PATH.format("get_mysql_engine"))
 @mock.patch(PATH.format("db_session"))
 def test_get_iso2_to_id(mocked_db_session, mocked_engine):
-    query = mocked_db_session().__enter__().query().join()
+    query = mocked_db_session().__enter__().query().join().filter().filter()
     query.all.return_value = ["BREADCRUMB"]
     assert get_iso2_to_id() == ["BREADCRUMB"]
 

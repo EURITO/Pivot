@@ -7,3 +7,4 @@ indicators/core/config/arxiv.yaml !filter !diff
 indicators/core/config/nih.yaml !filter !diff
 indicators/core/config/cordis.yaml !filter !diff
 indicators/core/config/crunchbase.yaml !filter !diff
+indicators/core/config/indicators.yaml !filter !diff

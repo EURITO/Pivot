@@ -16,5 +16,6 @@ EU_COUNTRIES = load_yaml("eu_countries")
 ARXIV_CONFIG = load_yaml("arxiv")
 NIH_CONFIG = load_yaml("nih")
 CORDIS_CONFIG = load_yaml("cordis")
+INDICATORS = load_yaml("indicators")
 
 os.environ["MYSQLDB"] = MYSQLDB_PATH  # for nesta.get_mysql_engine
