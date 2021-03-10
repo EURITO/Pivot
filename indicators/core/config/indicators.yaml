@@ -1,7 +1,0 @@
-# Dates for splitting the data in time
-precovid_dates:
-  from_date: 2015-01-01
-  to_date: 2020-01-01
-covid_dates:
-  from_date: 2020-03-01
-  to_date: 2021-07-01
