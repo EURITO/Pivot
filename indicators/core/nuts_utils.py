@@ -11,6 +11,7 @@ from indicators.core.config import NUTS_EDGE_CASES
 from itertools import groupby
 from operator import itemgetter
 from nuts_finder import NutsFinder as _NutsFinder
+import logging
 
 
 @lru_cache()
@@ -26,6 +27,7 @@ def NutsFinder():
 @lru_cache()
 def get_nuts_info_lookup():
     """Generate a lookup table of nuts ID to nuts info (name, level, code)"""
+    logging.info("Generating global NUTS lookup")
     nf = NutsFinder()
     lookup = {
         item["properties"]["NUTS_ID"]: {
@@ -82,15 +84,26 @@ def make_reverse_lookup(data, key=itemgetter(1), prefix=""):
        Grouped object of the form {code: {id1, id2, id3}}
     """
     # Look nuts code --> article id
+    logging.info("Performing reverse lookup")    
+    data_wout_null_codes = filter(key, data)  # without null codes
     return {
         f"{prefix}{code}": set(id for id, _ in group)
-        for code, group in groupby(sorted(data, key=key), key=key)
-        if code is not None  # Not interested in null codes
+        for code, group in groupby(sorted(data_wout_null_codes, key=key), key=key)
     }
 
 
 @lru_cache()
 def get_geo_lookup(module):
+    """Generate a geographic lookup for a given topic_module (e.g. arxiv_topics)
+    which has a get_lat_lon and get_iso2_to_id method. Output of the form:
+
+        {geography_code: [object_id]}
+
+    where the object_id could be e.g. an article ID in the case of arXiv,
+    or a project ID in the case of NiH or Cordis. NUTS codes are given as is,
+    and ISO2 codes are prefixed with "iso_" to distinguish them from NUTS
+    regions (avoiding any unforeseen ISO-NUTS code clashes).
+    """
     # Forward lookup
     nf = NutsFinder()
     id_to_nuts_lookup = {
