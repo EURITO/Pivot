@@ -147,9 +147,9 @@ def test_sort_and_filter_data():
     assert list(sorted_data["path1"].columns) == list(sorted_data["path2"].columns)
     assert list(sorted_data["path1"].columns) == [
         "indicator_name",
-        "nuts_level",
-        "nuts_code",
         "indicator_value",
+        "nuts_code",
+        "nuts_level",
     ]
 
 
