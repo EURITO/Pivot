@@ -12,7 +12,7 @@ Installation
 From the base of the repo (i.e. `path/to/Pivot`)
 
 ```bash
-export PYTHONPATH=$PWD:${PYTHONPATH}`
+export PYTHONPATH=$PWD:${PYTHONPATH}
 pip3 install virtualenv
 python3 -m virtualenv venv
 source venv/bin/activate
@@ -24,7 +24,7 @@ Finally you need to do ONE of the following:
 
 or
 
-```
+```bash
 pip install PyYAML>=5.3.0
 export PYTHONPATH=/path/to/nesta:$PWD:${PYTHONPATH}
 ```
