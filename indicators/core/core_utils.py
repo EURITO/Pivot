@@ -1,5 +1,6 @@
 from indicators.core.config import INDICATORS
 from indicators.core.nuts_utils import get_geo_lookup
+import pandas as pd
 
 
 def object_getter(topic_module, geo_split=False):
@@ -23,7 +24,27 @@ def object_getter(topic_module, geo_split=False):
     if geo_split:
         nuts_to_id_lookup = get_geo_lookup(topic_module)
         for geo_code, ids in nuts_to_id_lookup.items():
-            indexes = list(article["id"] in ids for article in objects)
+            indexes = list(obj["id"] in ids for obj in objects)
             yield indexes, geo_code
     else:
         yield objects
+
+
+def flatten(nested_dict):
+    """Convert nested dictionary into flat list of tuples.
+    E.g.
+        {'a': {'b': 'c', 'd': 'e'}}
+
+    becomes
+        [('a', 'b', 'c'), ('a', 'd', 'e')]
+    """
+    items = []
+    for k, v in nested_dict.items():
+        if type(v) is pd.Series:
+            v = dict(v)
+        if type(v) is dict:
+            for v in flatten(v):
+                items.append((k, *v))
+        else:
+            items.append((k, v))
+    return items

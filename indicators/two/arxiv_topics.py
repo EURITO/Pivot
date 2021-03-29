@@ -18,6 +18,7 @@ from nesta.core.orms.orm_utils import db_session
 model_config = ARXIV_CONFIG  # Specify the model config here
 
 
+@lru_cache()
 def get_lat_lon():
     """Get all institutes in arXiv which are in Europe
 
@@ -42,6 +43,7 @@ def get_lat_lon():
         return list(q.all())
 
 
+@lru_cache()
 def get_iso2_to_id():
     """
     Fetch and curate a lookup table of ISO2 code to

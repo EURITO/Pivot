@@ -6,11 +6,18 @@ from indicators.core.nlp_utils import (
     vectorise_docs,
     parse_topic,
     parse_corex_topics,
+    parse_corex_paths,
+    get_corex_labels,
+    get_non_stop_topics,
+    get_antitopics,
+    get_fluffy_topics,
+    parse_clean_topics,
 )
 
 PATH = "indicators.core.nlp_utils.{}"
 TOPIC_1 = "topic1:this,is,a,topic,and,other,words"
 TOPIC_2 = "topic2:this,is,another,topic,and,other,words"
+COVID_TOPIC = "covid_19 sars_cov_2 coronavirus disease patients"
 
 
 def test_join_text():
@@ -62,16 +69,67 @@ def test_vectorise_docs(mocked_Ngrammer):
 
 
 def test_parse_topic():
-    topic = parse_topic(TOPIC_1, n_most=5)
+    topic = parse_topic(TOPIC_1)
     assert topic == "this is a topic and"
-
-    topic = parse_topic(TOPIC_1, n_most=4)
-    assert topic == "this is a topic"
 
 
 @mock.patch("builtins.open", mock.mock_open(read_data=f"{TOPIC_1}\n{TOPIC_2}"))
-def test_parse_corex_topics():
-    topics = parse_corex_topics("dummy", n_most=6)
+@mock.patch(PATH.format("parse_corex_paths"))
+def test_parse_corex_topics(mocked_parser):
+    topics = parse_corex_topics("dummy")
     assert len(topics) == 2
-    assert topics[0] == "this is a topic and other"
-    assert topics[1] == "this is another topic and other"
+    assert topics[0] == "this is a topic and"
+    assert topics[1] == "this is another topic and"
+
+
+def test_parse_corex_paths():
+    from indicators.core.tests import dummy_topic_module
+
+    paths = parse_corex_paths(dummy_topic_module)
+    assert set(paths.keys()) == {"labels", "topics", "most_deterministic_groups"}
+
+
+def test_get_corex_labels():
+    """Check that can read the topics data and that the shape is as expected"""
+    from indicators.core.tests import dummy_topic_module as mod
+
+    # i.e. check cache is working
+    assert get_corex_labels(mod) is get_corex_labels(mod)
+    assert get_corex_labels(mod).shape == (10, 150)
+    assert get_corex_labels(mod).columns[0] == COVID_TOPIC
+    assert get_corex_labels(mod).sum(axis=1).sum() == 296
+
+
+def test_get_non_stop_topics():
+    from indicators.core.tests import dummy_topic_module
+
+    non_stops = get_non_stop_topics(dummy_topic_module)
+    # allow the config to change, but it shouldn't change the results too much
+    assert len(non_stops) > 50 and len(non_stops) < 296
+    assert COVID_TOPIC in non_stops
+
+
+def test_get_antitopics():
+    from indicators.core.tests import dummy_topic_module
+
+    antitopics = get_antitopics(dummy_topic_module)
+    assert len(antitopics) > 1 and len(antitopics) < 15
+    assert COVID_TOPIC not in antitopics
+
+
+def test_get_fluffy_topics():
+    from indicators.core.tests import dummy_topic_module
+
+    fluffy_topics = get_fluffy_topics(dummy_topic_module)
+    assert len(fluffy_topics) > 30 and len(fluffy_topics) < 80
+    assert COVID_TOPIC not in fluffy_topics
+
+
+def test_parse_clean_topics():
+    from indicators.core.tests import dummy_topic_module
+
+    clean_topics = parse_clean_topics(dummy_topic_module)
+    rows, cols = clean_topics.shape
+    assert rows == 10
+    assert cols > 20 and cols < 100
+    assert COVID_TOPIC in clean_topics.columns

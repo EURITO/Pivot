@@ -6,6 +6,7 @@ Topic modelling of the Cordis data.
 """
 
 from functools import lru_cache
+import logging
 
 from indicators.core.config import CORDIS_CONFIG
 from indicators.core.nuts_utils import iso_to_nuts
@@ -32,7 +33,8 @@ def get_iso2_to_id():
     Fetch and curate a lookup table of ISO2 code to
     the set of article ids for that ISO2 code.
     """
-    engine = get_mysql_engine("MYSQLDB", "mysqldb", "production")
+    logging.info("Retrieving projects iso2 lookup")
+    engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(Link.project_rcn, Org.country_code)
         query = query.join(Org, Link.organization_id == Org.id)
@@ -50,6 +52,7 @@ def get_objects(from_date):
     Returns:
         articles (list): List of arXiv article data.
     """
+    logging.info(f"Retrieving projects from at least {from_date}")
     engine = get_mysql_engine()
     with db_session(engine) as session:
         query = session.query(

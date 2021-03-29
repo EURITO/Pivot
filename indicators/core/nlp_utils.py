@@ -10,15 +10,21 @@ Utilities for:
 """
 
 import os
+from pathlib import Path
+import pickle
+from functools import lru_cache
+
 from corextopic import vis_topic as vt
 from corextopic import corextopic as ct
+import pandas as pd
 
-import pickle
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from indicators.core.config import MYSQLDB_PATH, INDICATORS
+from indicators.core.core_utils import object_getter
 
-# from indicators.core.core_utils import object_getter  NotImplementedYet
+
+CONFIG = INDICATORS["topic_parsing"]  # topic parsing config
 
 
 def join_text(*args):
@@ -88,6 +94,11 @@ def vectorise_docs(docs, min_df=10, max_df=0.95, extra_stops=[]):
     return doc_vectors, vec.get_feature_names()
 
 
+def make_model_label(dataset_label, n_topics, max_iter, **kwargs):
+    """Standardised label for datasets from model config"""
+    return f"topic-model-{dataset_label}-{n_topics}-{max_iter}"
+
+
 def fit_topics(
     dataset_label,
     doc_vectors,
@@ -123,7 +134,7 @@ def fit_topics(
         anchor_strength=anchor_strength,
     )
     # Use Corex tools for writing the data to the local directory
-    label = f"topic-model-{dataset_label}-{n_topics}-{max_iter}"
+    label = make_model_label(dataset_label, n_topics, max_iter)
     vt.vis_rep(topic_model, column_label=feature_names, prefix=label)
     os.remove(f"{label}/cont_labels.txt")  # Very large file that we don't use
     # pickle model for later use
@@ -132,22 +143,23 @@ def fit_topics(
     return topic_model
 
 
-def parse_topic(raw_topic, n_most):
+def parse_topic(raw_topic):
     """Convert a verbose Corex topic into a concise human-readable form.
 
     Args:
       raw_topic(str): Verbose Corex topic
-      n_most(int): Maximum number of terms to extract from the topic
 
     Returns:
       topic_content(str): Concise human-readable Corex topic
     """
+    n_most = CONFIG["terms_in_topics"]
     _, topic_content = raw_topic.split(":")
     topic_content = " ".join(topic_content.split(",")[:n_most])
     return topic_content
 
 
-def parse_corex_topics(path, n_most=5):
+@lru_cache()
+def parse_corex_topics(topic_module):
     """Parse concise human-readable topics from the output
     of a Corex topic model.
 
@@ -158,10 +170,11 @@ def parse_corex_topics(path, n_most=5):
     Returns:
       topics(list): List of concise human-readable topics
     """
+    corex_paths = parse_corex_paths(topic_module)
     topics = []
-    with open(path) as f:
+    with open(corex_paths["topics"]) as f:
         for raw_topic in f.readlines():
-            topic_content = parse_topic(raw_topic, n_most=n_most)
+            topic_content = parse_topic(raw_topic)
             topics.append(topic_content)
     return topics
 
@@ -177,13 +190,11 @@ def fit_topic_model(topic_module):
         objects, topic_model: List of objects (articles or projects),
                               and a trained topic model
     """
-    # The following logic will be simplified to:
-    # >> objs = next(object_getter(topic_module))
-    # in a subsequent PR
-    from_date = INDICATORS["precovid_dates"]["from_date"]
-    objs = list(topic_module.get_objects(from_date))
+    objs = next(object_getter(topic_module))  # only one value (a list), so use next
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
+    # Don't need the metadata for topic modelling
+    topic_module.model_config.pop("metadata")
     # Prepare the data and fit the model
     doc_vectors, feature_names = vectorise_docs(texts)
     topic_model = fit_topics(
@@ -193,3 +204,81 @@ def fit_topic_model(topic_module):
         **topic_module.model_config,
     )
     return objs, topic_model
+
+@lru_cache()
+def parse_corex_paths(topic_module):
+    """Get a lookup to all of CorEx's .txt output paths"""
+    label = make_model_label(**topic_module.model_config)
+    top_dir = Path(topic_module.__file__).parent
+    return {
+        fname.stem: fname
+        for fname in (top_dir / label).iterdir()
+        if fname.suffix == ".txt"
+    }
+
+
+@lru_cache()
+def get_corex_labels(topic_module):
+    """Retrieve CoreX topic labels from output of a CorEx run"""
+    corex_paths = parse_corex_paths(topic_module)
+    topics = parse_corex_topics(topic_module)
+    return pd.read_csv(corex_paths["labels"], names=topics, index_col=0)
+
+
+def get_non_stop_topics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "stop" if they occur in
+    more than `stop_topic_threshold` fraction of all documents. Then return the
+    set of all topic labels which are not stops.
+    """
+    topics = parse_corex_topics(topic_module)
+    labels = get_corex_labels(topic_module)
+    is_not_stop = labels.mean(axis=0) < CONFIG["stop_topic_threshold"]
+    non_stop_topics = pd.Series(topics, index=topics)[is_not_stop].values.tolist()
+    return set(non_stop_topics)
+
+
+def get_antitopics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "antitopics" if they contain
+    a large number (`max_antitopic_count`) of terms which are anti-correlated with
+    a topic occurence. That isn't to say that these are really "bad" topics,
+    but rather they are very hard to intepret. For example, "~chicken ~building people"
+    would imply a topic in which the terms "chicken" or "building" don't appear, and
+    so the "physical" interpretation is difficult.
+    """
+    topics = parse_corex_topics(topic_module)
+    return set(t for t in topics if t.count("~") > CONFIG["max_antitopic_count"])
+
+
+def get_fluffy_topics(topic_module):
+    """
+    Retrieve CoreX topics and define topics as being "fluffy" if they explain little
+    total correlation. This corresponds to the `NTC` variable in the
+    `most_deterministic_groups` output, and is filtered against the a
+    `fluffy_threshold` config variable. These could be interpretted as "noisy"
+    topics.
+    """
+    corex_paths = parse_corex_paths(topic_module)
+    topics = parse_corex_topics(topic_module)
+    total_corr = pd.read_csv(corex_paths["most_deterministic_groups"])
+    fluffy = total_corr[" NTC"].apply(lambda x: abs(x) < CONFIG["fluffy_threshold"])
+    fluffy_topics = [topics[itopic] for itopic in total_corr["Group num."].loc[fluffy]]
+    return set(fluffy_topics)
+
+
+def parse_clean_topics(topic_module):
+    """
+    Retrieve all CorEx topics and filter for "nice" topics.
+
+    Args:
+        topic_module (module): A topic module, e.g. arxiv_topics
+    Returns:
+        labels (pd.DataFrame): Binary labels for each document in the model with
+                               only "nice" topics considered.
+    """
+    fluffy_topics = get_fluffy_topics(topic_module)
+    antitopics = get_antitopics(topic_module)
+    non_stop_topics = get_non_stop_topics(topic_module)
+    labels = get_corex_labels(topic_module)
+    return labels[(non_stop_topics - antitopics) - fluffy_topics]
