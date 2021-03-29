@@ -1,0 +1,8 @@
+dataset_label: nih
+n_topics: 150
+anchors:
+  # The infection topic space is busy, so split into: {covid, viral, bacterial, parasitic}
+  - ['infection', 'covid', "coronavirus", 'covid_19', 'sars_cov_2']
+  - ["infection", "hiv"]
+  - ["infection", "bacteria"]
+  - ["infection", "parasite"]

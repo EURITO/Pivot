@@ -39,4 +39,3 @@ The indicators produced by this codebase reflect that the groups of questions wh
 As such, the corresponding code for generating indicators are found under e.g. `indicators/two` for the group of questions labelled "G2" in the spreadsheet. Other indicators added to this repository will follow this convention.
 
 For more information on generating the indicators for each group, refer to the local `README.md` in each subdirectory.
-=======

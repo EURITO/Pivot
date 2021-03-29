@@ -18,7 +18,6 @@ from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
 from indicators.core.config import MYSQLDB_PATH, INDICATORS
 
-
 # from indicators.core.core_utils import object_getter  NotImplementedYet
 
 
