@@ -14,10 +14,8 @@ install:
 before_script:
   - export PYTHONPATH=$PWD
   - export CONFDIR=indicators/core/config
-  - cp ${CONFDIR}/__init__.py TMPINIT.PY
-  - rm -r ${CONFDIR}/*
-  - cp TMPINIT.PY ${CONFDIR}/__init__.py
-  # NB: If you want any config for Travis, then make it yourself here:
+  # NB: If you want any config for Travis, then make it yourself here
+  # if it would be otherwise encrypted
   - echo -e "[mysqldb]\nuser=travis" > ${CONFDIR}/mysqldb.config
   - sudo rm -f /etc/boto.cfg
   - mysql -e 'CREATE DATABASE tests;'
