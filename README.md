@@ -12,7 +12,7 @@ Installation
 From the base of the repo (i.e. `path/to/Pivot`)
 
 ```bash
-export PYTHONPATH=$PWD:${PYTHONPATH}`
+export PYTHONPATH=$PWD:${PYTHONPATH}
 pip3 install virtualenv
 python3 -m virtualenv venv
 source venv/bin/activate
@@ -24,7 +24,7 @@ Finally you need to do ONE of the following:
 
 or
 
-```
+```bash
 pip install PyYAML>=5.3.0
 export PYTHONPATH=/path/to/nesta:$PWD:${PYTHONPATH}
 ```
@@ -39,3 +39,4 @@ The indicators produced by this codebase reflect that the groups of questions wh
 As such, the corresponding code for generating indicators are found under e.g. `indicators/two` for the group of questions labelled "G2" in the spreadsheet. Other indicators added to this repository will follow this convention.
 
 For more information on generating the indicators for each group, refer to the local `README.md` in each subdirectory.
+=======
