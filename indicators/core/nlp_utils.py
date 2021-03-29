@@ -16,7 +16,8 @@ from corextopic import corextopic as ct
 import pickle
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
-from indicators.core.config import MYSQLDB_PATH
+from indicators.core.config import MYSQLDB_PATH, INDICATORS
+
 
 # from indicators.core.core_utils import object_getter  NotImplementedYet
 
@@ -166,7 +167,7 @@ def parse_corex_topics(path, n_most=5):
     return topics
 
 
-def fit_topic_model(topic_module, model_config):
+def fit_topic_model(topic_module):
     """Fit topics based on hyperparameters specified in the model config.
 
     Args:
@@ -180,7 +181,8 @@ def fit_topic_model(topic_module, model_config):
     # The following logic will be simplified to:
     # >> objs = next(object_getter(topic_module))
     # in a subsequent PR
-    objs = next(list(topic_module.get_objects())[0])
+    from_date = INDICATORS["precovid_dates"]["from_date"]
+    objs = list(topic_module.get_objects(from_date))
     texts = [obj["text"] for obj in objs]
     titles = [obj["title"] for obj in objs]
     # Prepare the data and fit the model
@@ -189,6 +191,6 @@ def fit_topic_model(topic_module, model_config):
         titles=titles,
         doc_vectors=doc_vectors,
         feature_names=feature_names,
-        **model_config,
+        **topic_module.model_config,
     )
     return objs, topic_model
