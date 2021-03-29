@@ -16,9 +16,6 @@ before_script:
   - export CONFDIR=indicators/core/config
   # NB: If you want any config for Travis, then make it yourself here
   # if it would be otherwise encrypted
-  - cp ${CONFDIR}/__init__.py TMPINIT.PY
-  - rm -r ${CONFDIR}/*
-  - cp TMPINIT.PY ${CONFDIR}/__init__.py
   - echo -e "[mysqldb]\nuser=travis" > ${CONFDIR}/mysqldb.config
   - sudo rm -f /etc/boto.cfg
   - mysql -e 'CREATE DATABASE tests;'
