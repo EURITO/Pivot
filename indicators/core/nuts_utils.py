@@ -120,6 +120,7 @@ def get_geo_lookup(module):
             for id, nuts_info in id_to_nuts_lookup.items()
             for info in nuts_info
         ]
+
     id_iso2 = module.get_iso2_to_id()
     # Reverse lookups
     nuts_to_id_lookup = make_reverse_lookup(id_nuts)
