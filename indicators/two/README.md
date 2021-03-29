@@ -28,7 +28,6 @@ The outputs via CorEx's own I/O are saved locally (i.e. here) under a new `{data
 Step 2: Indicator generation
 ----------------------------
 
-Run the following to (re)generate the thematic indicators
 
 ```bash
 python thematic_indicators.py

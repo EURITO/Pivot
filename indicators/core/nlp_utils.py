@@ -205,7 +205,6 @@ def fit_topic_model(topic_module):
     )
     return objs, topic_model
 
-
 @lru_cache()
 def parse_corex_paths(topic_module):
     """Get a lookup to all of CorEx's .txt output paths"""
