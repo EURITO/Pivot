@@ -86,7 +86,12 @@ def test_parse_corex_paths():
     from indicators.core.tests import dummy_topic_module
 
     paths = parse_corex_paths(dummy_topic_module)
-    assert set(paths.keys()) == {"labels", "topics", "most_deterministic_groups"}
+    assert set(paths.keys()) == {
+        "labels",
+        "cont_labels",
+        "topics",
+        "most_deterministic_groups",
+    }
 
 
 def test_get_corex_labels():
