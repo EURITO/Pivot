@@ -2,3 +2,9 @@ PyYAML>=5.3.0
 networkx>=2.3
 nesta @ git+git://github.com/nestauk/nesta.git@dev#egg=nesta
 scikit-bio>=0.5.6
+xlrd
+openpyxl
+git+https://github.com/nestauk/wiki_topic_labels.git@branch_name
+webdriver-manager
+altair-saver
+tabulate
