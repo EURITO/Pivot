@@ -9,14 +9,13 @@ Utilities for:
 * Extracting CorEx topics from flat output
 """
 
-import os
 from pathlib import Path
-import pickle
 from functools import lru_cache
 
 from corextopic import vis_topic as vt
 from corextopic import corextopic as ct
 import pandas as pd
+import numpy as np
 
 from nesta.packages.nlp_utils.ngrammer import Ngrammer
 from sklearn.feature_extraction.text import CountVectorizer
@@ -136,10 +135,6 @@ def fit_topics(
     # Use Corex tools for writing the data to the local directory
     label = make_model_label(dataset_label, n_topics, max_iter)
     vt.vis_rep(topic_model, column_label=feature_names, prefix=label)
-    os.remove(f"{label}/cont_labels.txt")  # Very large file that we don't use
-    # pickle model for later use
-    with open(f"{label}/model.pickle", "wb") as f:
-        pickle.dump(topic_model, f)
     return topic_model
 
 
@@ -205,6 +200,7 @@ def fit_topic_model(topic_module):
     )
     return objs, topic_model
 
+
 @lru_cache()
 def parse_corex_paths(topic_module):
     """Get a lookup to all of CorEx's .txt output paths"""
@@ -218,11 +214,24 @@ def parse_corex_paths(topic_module):
 
 
 @lru_cache()
-def get_corex_labels(topic_module):
-    """Retrieve CoreX topic labels from output of a CorEx run"""
+def get_corex_labels(topic_module, binary_threshold=0.5):
+    """Retrieve CoreX topic labels from output of a CorEx run and binarise if desired
+
+    Args:
+        topic_module (module): A topic module, e.g. arxiv_topics
+        binary_threshold (int): Threshold over which to classify a row as belonging to
+                                the topic (default = 0.5). If set to None then raw
+                                topic weights (probabilities) are returned.
+    """
     corex_paths = parse_corex_paths(topic_module)
     topics = parse_corex_topics(topic_module)
-    return pd.read_csv(corex_paths["labels"], names=topics, index_col=0)
+    log_prob = pd.read_csv(corex_paths["cont_labels"], names=topics, index_col=0)
+    # Convert log-prob back to prob
+    actual_prob = np.exp(log_prob.values)
+    weighted_labels = pd.DataFrame(actual_prob, columns=topics, index=log_prob.index)
+    if binary_threshold is None:
+        return weighted_labels
+    return (weighted_labels > binary_threshold).astype(int)
 
 
 def get_non_stop_topics(topic_module):
@@ -267,7 +276,7 @@ def get_fluffy_topics(topic_module):
     return set(fluffy_topics)
 
 
-def parse_clean_topics(topic_module):
+def parse_clean_topics(topic_module, binary_threshold=0.5):
     """
     Retrieve all CorEx topics and filter for "nice" topics.
 
@@ -280,5 +289,5 @@ def parse_clean_topics(topic_module):
     fluffy_topics = get_fluffy_topics(topic_module)
     antitopics = get_antitopics(topic_module)
     non_stop_topics = get_non_stop_topics(topic_module)
-    labels = get_corex_labels(topic_module)
+    labels = get_corex_labels(topic_module, binary_threshold=binary_threshold)
     return labels[(non_stop_topics - antitopics) - fluffy_topics]

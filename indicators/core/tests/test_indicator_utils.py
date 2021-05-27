@@ -145,12 +145,14 @@ def test_sort_and_filter_data():
     sorted_data = sort_and_filter_data(file_data)
     assert sorted_data.keys() == file_data.keys()
     assert list(sorted_data["path1"].columns) == list(sorted_data["path2"].columns)
-    assert list(sorted_data["path1"].columns) == [
-        "indicator_name",
-        "indicator_value",
-        "nuts_code",
-        "nuts_level",
-    ]
+    assert sorted(list(sorted_data["path1"].columns)) == sorted(
+        [
+            "indicator_name",
+            "nuts_level",
+            "nuts_code",
+            "indicator_value",
+        ]
+    )
 
 
 @mock.patch(PATH.format("boto3"))
